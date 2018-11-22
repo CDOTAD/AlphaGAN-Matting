@@ -18,12 +18,30 @@ AlphaGAN matting 的discriminator采用PatchGAN。
 
 - Python 3
 - Pytorch 0.4
+- OpenCV
 
 # Dataset
 
 ## Adobe Deep Image Matting Dataset
 
 Follow the [instruction](https://sites.google.com/view/deepimagematting) to contact author for the dataset
+
+你可能还需要按照Deep Image Matting中论文的方法在alpha mat的基础上生成trimap，这是一个别人实现的方法
+
+```python
+import numpy as np
+import cv2 as cv
+
+def generate_trimap(alpha):
+    fg = np.array(np.equal(alpha, 255).astype(np.float32))
+    # fg = cv.erode(fg, kernel, iterations=np.random.randint(1, 3))
+    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
+    unknown = np.array(np.not_equal(alpha, 0).astype(np.float32))
+    unknown = cv.dilate(unknown, kernel, iterations=np.random.randint(1, 20))
+    trimap = fg * 255 + (unknown - fg) * 128
+    return trimap.astype(np.uint8)
+
+```
 
 # Train & Test
 
