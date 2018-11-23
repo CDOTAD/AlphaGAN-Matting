@@ -104,11 +104,12 @@ GAN是一个很难训练的网络模型，很可能就会出现生成结果不�
 同时也有一篇关于GAN全景图的论文，[The GAN Landscape](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650745273&idx=1&sn=b057305f7431423adebaa519dcd23547&chksm=871aedc7b06d64d1f66d78687a721b7360f0b11f20b44b00c7d92047f137e75be20d9ffb2009&mpshare=1&scene=1&srcid=0715c3IDUOvpvCyTHgZhMDMV&pass_ticket=qgYs5vOKlc87Cj4B5uTln9ELDfWQJnTqwJO%2B5ipNoI6K7VStQ9djW9PXdfzSwMD3#rd)论文中总结了近来效果比较好的GAN的超参数。
 
 复现中的超参数
-|Parameter|value|
-|------|-----|
-|learning rate α|0.0002|
-|negative slope| 0.2|
-|(β1, β2)| (0.9, 0.999)|
+
+|   Parameter   |    value    |
+|     :---:     |    :---:    |
+|learning rate α|    0.0002   |
+|negative slope |     0.2     |
+|(β1, β2)       | (0.9, 0.999)|
 
 # Loss
 
