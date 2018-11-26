@@ -32,10 +32,47 @@ def generate_trimap(alpha):
     return trimap.astype(np.uint8)
 
 ```
+项目中的DataSet目录结构
+```Bash
+Train
+  ├── alpha  # the alpha ground-truth
+  ├── bg     # the background image
+  ├── fg     # the foreground image
+  ├── input  # the real image composed by the fg & bg
+  ├── trimap # the trimap
+```
 
 # Train & Test
 
-等我先重构下代码再说这部分的事情╮(￣▽￣)╭
+~~等我先重构下代码再说这部分的事情╮(￣▽￣)╭~~
+
+
+如果，你把目录建的和我一样那你可以直接，当然这几乎不可能~
+```Bash
+
+python alphaGAN_train.py
+
+```
+你需要设定数据的地址与模型保存的地址
+```Bash
+
+python alphaGAN_train.py --dataroot ${your_dataroot} --save_dir ${your_modelroot}
+
+```
+
+可视化前，你需要启动visdom服务
+```Bash
+
+python -m visdom.server
+
+```
+
+获得更多参数
+```Bash
+
+python alphaGAN_train.py --help
+
+```
 
 # Acknowledgments
 
@@ -114,6 +151,8 @@ GAN是一个很难训练的网络模型，很可能就会出现生成结果不�
 # Loss
 
 AlphaGAN的损失函数由GAN的对抗损失与[Deep Image Matting](https://sites.google.com/view/deepimagematting)中提出的alpha-prediction loss和compositional loss构成，所以AlphaGAN的Loss如下：
+
+<img src="http://chart.googleapis.com/chart?cht=tx&chl=\Large L_{AlphaGAN}(G, D)=L_{alpha}(G)+L_{comp}(G)+L_{GAN}(G, D)" style="border:none;">
 
 $$ L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D) $$
 
