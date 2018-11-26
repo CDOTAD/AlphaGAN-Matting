@@ -183,7 +183,6 @@ class NLayerDiscriminator(nn.Module):
             nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
             nn.LeakyReLU(0.2, True)
         ]
-
         nf_mult = 1
         nf_mult_prev = 1
         for n in range(1, n_layers):
@@ -227,8 +226,12 @@ class AlphaGAN(object):
         self.lrD = args.lrD
         self.com_loss = args.com_loss
         self.fine_tune = args.fine_tune
-        self.model_G = args.model
-        self.model_D = args.model.replace('netG', 'netD')
+        self.visual = args.visual
+        self.env = args.env
+
+        if self.fine_tune:
+            self.model_G = args.model
+            self.model_D = args.model.replace('netG', 'netD')
 
         # network init
         self.G = NetG()
@@ -246,7 +249,6 @@ class AlphaGAN(object):
 
         self.G_optimizer = t.optim.Adam(self.G.parameters(), lr=self.lrG)
         self.D_optimizer = t.optim.Adam(self.D.parameters(), lr=self.lrD)
-
         if self.gpu_mode:
             self.G.to(self.device)
             self.D.to(self.device)
@@ -257,7 +259,8 @@ class AlphaGAN(object):
         self.D_error_meter = AverageValueMeter()
 
     def train(self, dataset):
-        vis = Visualizer('alphaGAN_train')
+        if self.visual:
+            vis = Visualizer(self.env)
 
         for epoch in range(self.epoch):
             for ii, data in tqdm.tqdm(enumerate(dataset)):
@@ -305,7 +308,7 @@ class AlphaGAN(object):
 
                     loss_d_fake = self.D_criterion(fake_d, target_fake)
 
-                    loss_D = (loss_d_real + loss_d_fake) * 0.5
+                    loss_D = loss_d_real + loss_d_fake
                     loss_D.backward()
                     self.D_optimizer.step()
                     self.D_error_meter.add(loss_D.item())
@@ -316,7 +319,7 @@ class AlphaGAN(object):
                     fake_alpha = self.G(input_img)
                     # fake_alpha 与 real_alpha的L1 loss
                     loss_g_alpha = self.G_criterion(fake_alpha, real_alpha)
-                    loss_G = 0.8 * loss_g_alpha
+                    loss_G = loss_g_alpha
                     if self.com_loss:
                         fake_img = fake_alpha * fg_img + (1 - fake_alpha) * bg_img
                         loss_g_cmp = self.G_criterion(fake_img, real_img)
@@ -324,19 +327,19 @@ class AlphaGAN(object):
                         # 迷惑判别器
                         fake_d = self.D(fake_img)
 
-                        loss_G = loss_G + 0.2 * loss_g_cmp
+                        loss_G = loss_G + loss_g_cmp
                     else:
                         fake_d = self.D(fake_alpha)
                     target_fake = t.tensor(1.0).expand_as(fake_d).to(self.device)
                     loss_g_d = self.D_criterion(fake_d, target_fake)
 
-                    loss_G = loss_G + 0.2 * loss_g_d
+                    loss_G = loss_G + loss_g_d
 
                     loss_G.backward()
                     self.G_optimizer.step()
                     self.G_error_meter.add(loss_G.item())
 
-                if ii % 20 == 0:
+                if self.visual and ii % 20 == 0:
                     vis.plot('errord', self.D_error_meter.value()[0])
                     vis.plot('errorg', self.G_error_meter.value()[0])
                     vis.images(tri_img.numpy()*0.5 + 0.5, win='tri_map')
@@ -348,8 +351,8 @@ class AlphaGAN(object):
             self.G_error_meter.reset()
             self.D_error_meter.reset()
             if epoch % 5 == 0:
-                t.save(self.D.state_dict(), '/home/zzl/model/alphaGAN/netD/' + self.save_dir + '/netD_%s.pth' % epoch)
-                t.save(self.G.state_dict(), '/home/zzl/model/alphaGAN/netG/' + self.save_dir + '/netG_%s.pth' % epoch)
+                t.save(self.D.state_dict(), self.save_dir + '/netD_%s.pth' % epoch)
+                t.save(self.G.state_dict(), self.save_dir + '/netG_%s.pth' % epoch)
 
         return
 
