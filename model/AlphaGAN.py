@@ -13,17 +13,17 @@ class _AsppBlock(nn.Sequential):
     def __init__(self, in_channels, out_channels, dilation_rate):
         super(_AsppBlock, self).__init__()
 
-        self.relu1 = nn.LeakyReLU(0.2, True)
-        self.conv_1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
-        self.relu2 = nn.LeakyReLU(0.2, True)
-        self.conv_2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3,
+        self.conv_2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3,
                                 dilation=dilation_rate, padding=dilation_rate)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.LeakyReLU(0.2)
 
     def forward(self, _input):
 
-        feature = super(_AsppBlock, self).forward(_input)
+        x = self.conv_2(_input)
+        x = self.bn(x)
 
-        return feature
+        return self.relu(x)
 
 
 # input batch x 2048 x 40 x 40
@@ -31,7 +31,7 @@ class ASPP(nn.Module):
 
     def __init__(self, in_channels, out_channels):
         super(ASPP, self).__init__()
-
+        '''
         self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
         self.aspp_6 = _AsppBlock(in_channels=out_channels, out_channels=out_channels, dilation_rate=6)
         # nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, dilation=6, padding=6)
@@ -40,22 +40,33 @@ class ASPP(nn.Module):
         self.aspp_18 = _AsppBlock(in_channels=3*out_channels, out_channels=out_channels, dilation_rate=18)
         # nn.Conv2d(in_channels=768, out_channels=256, kernel_size=3, dilation=18, padding=18)
         '''
-        # self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
+        self.aspp_1 = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2)
+        )
         self.aspp_6 = _AsppBlock(in_channels=in_channels, out_channels=out_channels, dilation_rate=6)
         # nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, dilation=6, padding=6)
         self.aspp_12 = _AsppBlock(in_channels=in_channels, out_channels=out_channels, dilation_rate=12)
         # nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, dilation=12, padding=12)
         self.aspp_18 = _AsppBlock(in_channels=in_channels, out_channels=out_channels, dilation_rate=18)
         # nn.Conv2d(in_channels=768, out_channels=256, kernel_size=3, dilation=18, padding=18)
-        '''
+
         self.image_pooling = nn.Sequential(
-            nn.AvgPool2d(kernel_size=3, stride=1, padding=1),
-            nn.Conv2d(in_channels=4*out_channels, out_channels=out_channels, kernel_size=1),
-            nn.ReLU(True)
+            nn.AdaptiveAvgPool2d(40),
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=5*out_channels, out_channels=out_channels, kernel_size=1),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2)
         )
 
     def forward(self, input):
-
+        '''
         x = self.conv1(input)
 
         aspp6 = self.aspp_6(x)
@@ -69,17 +80,17 @@ class ASPP(nn.Module):
 
         x = self.image_pooling(x)
         '''
+        aspp1 = self.aspp_1(input)    # 256
+        aspp6 = self.aspp_6(input)    # 256
+        aspp12 = self.aspp_12(input)  # 256
+        aspp18 = self.aspp_18(input)  # 256
 
-        aspp6 = self.aspp_6(input)
-        aspp12 = self.aspp_12(input)
-        aspp18 = self.aspp_18(input)
+        im_p = self.image_pooling(input) # 256
 
-        x = t.cat((aspp6, aspp12), dim=1)
-        x = t.cat((x, aspp18), dim=1)
+        aspp = [aspp1, aspp6, aspp12, aspp18, im_p]
+        aspp = t.cat(aspp, dim=1)
 
-        x = self.image_pooling(x)
-        '''
-        return x
+        return self.conv1(aspp)
 
 
 # G
