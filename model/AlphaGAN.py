@@ -247,9 +247,9 @@ class AlphaGAN(object):
         # network init
         self.G = NetG()
         if self.com_loss:
-            self.D = NLayerDiscriminator(input_nc=3)
+            self.D = NLayerDiscriminator(input_nc=4)
         else:
-            self.D = NLayerDiscriminator(input_nc=1)
+            self.D = NLayerDiscriminator(input_nc=2)
 
         print(self.G)
         print(self.D)
@@ -275,14 +275,15 @@ class AlphaGAN(object):
 
         for epoch in range(self.epoch):
             for ii, data in tqdm.tqdm(enumerate(dataset)):
-                real_img = data['I'].to(self.device)
+                real_img = data['I']
                 tri_img = data['T']
 
-                bg_img = data['B'].to(self.device)
-                fg_img = data['F'].to(self.device)
+                if self.com_loss:
+                    bg_img = data['B'].to(self.device)
+                    fg_img = data['F'].to(self.device)
 
                 # input to the G
-                input_img = t.tensor(np.append(real_img.cpu().numpy(), tri_img.numpy(), axis=1)).to(self.device)
+                input_img = t.tensor(np.append(real_img.numpy(), tri_img.numpy(), axis=1)).to(self.device)
 
                 # real_alpha
                 real_alpha = data['A'].to(self.device)
@@ -291,14 +292,18 @@ class AlphaGAN(object):
                 # vis.images(real_alpha.cpu().numpy()*0.5 + 0.5, win='real_alpha')
                 # vis.images(tri_img.numpy()*0.5 + 0.5, win='tri_map')
 
+                # train D
                 if ii % 5 == 0:
                     self.D_optimizer.zero_grad()
 
+                    # real_img_d = input_img[:, 0:3, :, :]
+                    tri_img_d = input_img[:, 3:4, :, :]
+
                     # 真正的alpha 交给判别器判断
                     if self.com_loss:
-                        real_d = self.D(real_img)
+                        real_d = self.D(input_img)
                     else:
-                        real_d = self.D(real_alpha)
+                        real_d = self.D(t.cat([real_alpha, tri_img_d], dim=1))
 
                     target_real_label = t.tensor(1.0)
                     target_real = target_real_label.expand_as(real_d).to(self.device)
@@ -310,9 +315,9 @@ class AlphaGAN(object):
                     fake_alpha = self.G(input_img)
                     if self.com_loss:
                         fake_img = fake_alpha*fg_img + (1 - fake_alpha) * bg_img
-                        fake_d = self.D(fake_img)
+                        fake_d = self.D(t.cat([fake_img, tri_img_d], dim=1))
                     else:
-                        fake_d = self.D(fake_alpha)
+                        fake_d = self.D(t.cat([fake_alpha, tri_img_d], dim=1))
                     target_fake_label = t.tensor(0.0)
 
                     target_fake = target_fake_label.expand_as(fake_d).to(self.device)
@@ -324,23 +329,28 @@ class AlphaGAN(object):
                     self.D_optimizer.step()
                     self.D_error_meter.add(loss_D.item())
 
+                # train G
                 if ii % 1 == 0:
                     self.G_optimizer.zero_grad()
+
+                    real_img_g = input_img[:, 0:3, :, :]
+                    tri_img_g = input_img[:, 3:4, :, :]
 
                     fake_alpha = self.G(input_img)
                     # fake_alpha 与 real_alpha的L1 loss
                     loss_g_alpha = self.G_criterion(fake_alpha, real_alpha)
                     loss_G = loss_g_alpha
+
                     if self.com_loss:
                         fake_img = fake_alpha * fg_img + (1 - fake_alpha) * bg_img
-                        loss_g_cmp = self.G_criterion(fake_img, real_img)
+                        loss_g_cmp = self.G_criterion(fake_img, real_img_g)
 
                         # 迷惑判别器
-                        fake_d = self.D(fake_img)
-
+                        fake_d = self.D(t.cat([fake_img, tri_img_g], dim=1))
                         loss_G = loss_G + loss_g_cmp
+
                     else:
-                        fake_d = self.D(fake_alpha)
+                        fake_d = self.D(t.cat([fake_alpha, tri_img_g], dim=1))
                     target_fake = t.tensor(1.0).expand_as(fake_d).to(self.device)
                     loss_g_d = self.D_criterion(fake_d, target_fake)
 
