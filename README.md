@@ -8,6 +8,7 @@
 
 - Python 3
 - Pytorch 0.4
+- visdom 0.1.8.5
 - OpenCV
 
 # Dataset
@@ -152,7 +153,7 @@ GAN是一个很难训练的网络模型，很可能就会出现生成结果不�
 
 AlphaGAN的损失函数由GAN的对抗损失与[Deep Image Matting](https://sites.google.com/view/deepimagematting)中提出的alpha-prediction loss和compositional loss构成，所以AlphaGAN的Loss如下：
 
-<img src="http://chart.googleapis.com/chart?cht=tx&chl=\Large L_{AlphaGAN}(G, D)=L_{alpha}(G)+L_{comp}(G)+L_{GAN}(G, D)" style="border:none;">
+<img src="http://chart.googleapis.com/chart?cht=tx&chl=\Large x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}" style="border:none;">
 
 $$ L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D) $$
 
