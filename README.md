@@ -83,6 +83,14 @@ python alphaGAN_train.py --help
 
 - [pytorch-book](https://github.com/chenyuntc/pytorch-book) 中的GAN生成动漫头像
 
+- [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception)
+
+# Update
+
+### 2018-11-26
+
+新的ASPP结构，参考了[pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception)。通过将LeakyReLU的inplace设置为False解决了RuntimeError: one of the variables needed for gradient computation has been modified by an inplace operation。现在的ASPP和论文中的结构类似了。依旧没有skip connection。结果等训好了再看看。
+
 # Network architecture
 
 ## Generator
@@ -110,9 +118,11 @@ AlphaGAN matting 的discriminator采用PatchGAN。
 
 后来，我看了下相关论文中ASPP的结构，发现，这怎么好像和SPP不太一样？？？这怎么看起来像Inception结构。到网上找了个ASPP的实现，总感觉好像不太对。
 
-后来，我打算按照下图的结构自己实现个ASPP，在ASPP的```forward```过程中，将输入分别输入到各个空洞卷积中，再将结果```torch.cat```到一起，结果还引发了另一个问题—— RuntimeError: one of the variables needed for gradient computation has been modified by an inplace operation。
+后来，我打算按照下图的结构自己实现个ASPP，在ASPP的```forward```过程中，将输入分别输入到各个空洞卷积中，~~再将结果```torch.cat```到一起，结果还引发了另一个问题—— RuntimeError: one of the variables needed for gradient computation has been modified by an inplace operation。~~
 
-关于这个RuntimeError的解决方法有几种
+原来这个RuntimeError和```torch.cat```无关。只要把LeakyReLU设置成```inplace=False```就可以了╮(￣▽￣)╭。但为什么别的LeakyReLU ```inplace=True```没有出现这个问题？薛定谔的RuntimeError
+
+关于这个RuntimeError的解决方法有几种：
 
 - 将```inplace=True```改成```inplace=False```
 - 将 ```a += b```改成```a = a + b ```
@@ -153,7 +163,7 @@ GAN是一个很难训练的网络模型，很可能就会出现生成结果不�
 
 AlphaGAN的损失函数由GAN的对抗损失与[Deep Image Matting](https://sites.google.com/view/deepimagematting)中提出的alpha-prediction loss和compositional loss构成，所以AlphaGAN的Loss如下：
 
-<img src="http://chart.googleapis.com/chart?cht=tx&chl=\Large x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}" style="border:none;">
+<img src="http://www.forkosh.com/mathtex.cgi? \Large x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}">
 
 $$ L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D) $$
 
