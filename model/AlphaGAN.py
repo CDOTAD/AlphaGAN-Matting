@@ -127,6 +127,7 @@ class NetG(nn.Module):
         self.aspp = ASPP(in_channels=2048, out_channels=256)
 
         # output 256 x 40 x 40
+        #
 
         self.decoder = nn.Sequential(
             # bilinear
@@ -181,7 +182,7 @@ class NetG(nn.Module):
 
 # Defines the PatchGAN discriminator with the specified arguments.
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=True):
         super(NLayerDiscriminator, self).__init__()
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
@@ -372,8 +373,8 @@ class AlphaGAN(object):
             self.G_error_meter.reset()
             self.D_error_meter.reset()
             if epoch % 5 == 0:
-                t.save(self.D.state_dict(), self.save_dir + '/netD_%s.pth' % epoch)
-                t.save(self.G.state_dict(), self.save_dir + '/netG_%s.pth' % epoch)
+                t.save(self.D.state_dict(), self.save_dir + '/netD' + '/netD_%s.pth' % epoch)
+                t.save(self.G.state_dict(), self.save_dir + '/netG' + '/netG_%s.pth' % epoch)
 
         return
 
