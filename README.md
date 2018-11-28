@@ -190,7 +190,7 @@ $ L_{comp} $可以约束图像边缘部分的点，GAN不再生成离散的，�
 
 由于图片切割问题，会有明显的切割边缘。效果感觉还可以，但细节信息依旧不好。
 
-![test_reslut_new_d](src/result_new_d.png)
+![test_reslut_new_d](src/ball_result.jpg)
 
 ![ball_alpha.png](src/ball_alpha.png)
 
