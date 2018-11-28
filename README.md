@@ -192,4 +192,6 @@ $ L_{comp} $可以约束图像边缘部分的点，GAN不再生成离散的，�
 
 ![test_reslut_new_d](src/result_new_d.png)
 
+![ball_alpha.png](src/ball_alpha.png)
+
 
