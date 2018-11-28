@@ -91,6 +91,10 @@ python alphaGAN_train.py --help
 
 新的ASPP结构，参考了[pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception)。通过将LeakyReLU的inplace设置为False解决了RuntimeError: one of the variables needed for gradient computation has been modified by an inplace operation。现在的ASPP和论文中的结构类似了。依旧没有skip connection。结果等训好了再看看。
 
+### 2018-11-28
+
+我发现我之前的Discriminator的输出最后没有经过sigmoid。重构了下AlphaGAN的model。
+
 # Network architecture
 
 ## Generator
@@ -137,7 +141,7 @@ AlphaGAN matting 的discriminator采用PatchGAN。
 
 GAN是一个很难训练的网络模型，很可能就会出现生成结果不理想的情况。我就觉得我现在训练出的这个模型很就没训练好，生成的结果可以说几乎没有细节信息，很是模糊_(:з」∠)_。尽管文章中采用了PatchGAN作为discriminator，而PatchGAN设计的初衷就是去模糊。
 
-在复现过程中，参看了[训练GAN的16个技巧](https://mp.weixin.qq.com/s/d_W0O7LNqlBuZV87Ou9uqw)以及[Improved Techniques for Training GANs](https://arxiv.org/abs/1606.03498)。
+在复现过程中，参看了[训练GAN的16个技巧](https://mp.weixin.qq.com/s/d_W0O7LNqlBuZV87Ou9uqw)([How to Train a GAN@NIPS2016](https://github.com/soumith/ganhacks))以及[Improved Techniques for Training GANs](https://arxiv.org/abs/1606.03498)。
 
 - 优化器采用Adam
 - 不要通过loss statistics 去平衡G与D的训练过程
@@ -183,5 +187,9 @@ $ L_{comp} $可以约束图像边缘部分的点，GAN不再生成离散的，�
 可以说生成结果边缘信息缺失，没有细节，非常模糊了。完全没有论文中的效果好╮(￣▽￣)╭
 
 ![test_reslut](src/test_reslut.png)
+
+由于图片切割问题，会有明显的切割边缘。效果感觉还可以，但细节信息依旧不好。
+
+![test_reslut_new_d](src/result_new_d.png)
 
 
