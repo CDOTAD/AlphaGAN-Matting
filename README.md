@@ -2,7 +2,7 @@
 >课程项目要求做image matting，于是找到了一篇这样的论文做image matting。刚好也对GAN比较感兴趣，GAN作为一种生成模型，至今已经在图像生成，图像风格转移等方面取得了很好的效果，那么使用GAN从trimap domain转换到alphamap domain应该是个自然的想法。
 
 本项目是参考BMVC 2018的一篇论文
-[AlphaGAN: Generative adversarial networks for natural image matting](https://arxiv.org/pdf/1807.10088.pdf)的复现。目前还没有采用论文中的skip connection。效果也不是很好，或者说效果比较差吧╮(￣▽￣)╭。
+[AlphaGAN: Generative adversarial networks for natural image matting](https://arxiv.org/pdf/1807.10088.pdf)的复现。~~目前还没有采用论文中的skip connection~~。效果也不是很好，或者说效果比较差吧╮(￣▽￣)╭。
 
 # Dependencies
 
@@ -94,6 +94,10 @@ python alphaGAN_train.py --help
 ### 2018-11-28
 
 我发现我之前的Discriminator的输出最后没有经过sigmoid。重构了下AlphaGAN的model。
+
+### 2018-12-3
+
+实现了skip connection。用最新实现的AlphaGAN.py替换了原有的模型定义文件。
 
 # Network architecture
 
@@ -191,6 +195,10 @@ $ L_{comp} $可以约束图像边缘部分的点，GAN不再生成离散的，�
 由于图片切割问题，会有明显的切割边缘。效果感觉还可以，但细节信息依旧不好。
 
 ![test_reslut_new_d](src/ball_result.jpg)
+
+不需要切割模型仍然可以处理输入的图片
+
+![whole_image](src/whole_image.jpg)
 
 ![ball_alpha.png](src/ball_alpha.png)
 
