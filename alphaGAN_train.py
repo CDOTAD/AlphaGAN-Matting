@@ -24,6 +24,9 @@ def parse_args():
     parser.add_argument('--gpu_mode', type=str2bool, nargs='?', default=True, help='Use gpu mode')
     parser.add_argument('--device', type=str, default='cuda:0', help='The cuda device that to be used')
 
+    parser.add_argument('--d_every', type=int, default=1, help='the frequency of training D')
+    parser.add_argument('--g_every', type=int, default=5, help='the frequency of training G')
+    
     parser.add_argument('--lrG', type=float, default=0.0002, help='The learning rate of G')
     parser.add_argument('--lrD', type=float, default=0.0002, help='The learning rate of D')
     parser.add_argument('--com_loss', type=bool, default=True, help='Whether to use com_loss')

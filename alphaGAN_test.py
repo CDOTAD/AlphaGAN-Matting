@@ -1,6 +1,8 @@
 import torchvision.transforms as transforms
 import numpy as np
 import torch as t
+import os
+import math
 from model.AlphaGAN import NetG
 from visualize import Visualizer
 from PIL import Image
@@ -55,6 +57,53 @@ def combination(img_list, h_clip, w_clip):
 
     return com
 
+def com_input(fg, alpha):
+    COCO_ROOT = '/data1/zzl/dataset/mscoco/train2014'
+
+    ball = Image.open(fg).convert('RGB')
+    alpha = Image.open(alpha).convert('L')
+
+    to_tensor = transforms.Compose([
+        transforms.ToTensor()
+    ])
+
+    # transform to tensor
+    ball_tensor = to_tensor(ball)
+    alpha_tensor = to_tensor(alpha)
+
+    # random chose bg
+    bg_list = os.listdir(COCO_ROOT)
+    index = np.random.randint(0, len(bg_list))
+    bg = Image.open(os.path.join(COCO_ROOT, bg_list[index]))
+
+    # resize bg
+    bg_bbox = bg.size
+    fg_bbox = ball.size
+
+    w = fg_bbox[0]
+    h = fg_bbox[1]
+
+    bw = bg_bbox[0]
+    bh = bg_bbox[1]
+
+    wratio = w / bw
+    hratio = h / bh
+
+    ratio = wratio if wratio > hratio else hratio
+    if ratio > 1:
+        bg = bg.resize((math.ceil(bw * ratio), math.ceil(bh * ratio)), Image.BICUBIC)
+
+    bg = bg.crop((0, 0, w, h))
+
+    bg_tensor = to_tensor(bg)
+
+    input_tensor = alpha_tensor * ball_tensor + (1 - alpha_tensor) * bg_tensor
+
+    to_pil = transforms.Compose([
+        transforms.ToPILImage()
+    ])
+
+    return to_pil(input_tensor)
 
 @t.no_grad()
 def test():
@@ -94,28 +143,39 @@ def test():
     vis.images(crop_img.numpy() * 0.5 + 0.5, win='real_img')
     vis.images(com_img.numpy()*0.5 + 0.5, win='com_img')
 
+    return
 
 @t.no_grad()
-def test_1():
-
-    real_img = Image.open('ball_input.png').convert('RGB')
-    real_img = real_img.resize((320, 320))
-    real_img = transform(real_img)
-    real_img = real_img[None]
+def no_clip():
+    # get input trimap
     tri_img = Image.open('ball_tri.png').convert('L')
-    tri_img = tri_img.resize((320, 320))
-    tri_img = transform(tri_img)
-    tri_img = tri_img[None]
-    input_img = t.cat((real_img, tri_img), dim=1)
+    tri_img_tensor = transform(tri_img)
+    tri_img_tensor = tri_img_tensor[None]
+    # compose the fg and bg
+    com_img = com_input('ball_input.png', 'ball_alpha.png')
+    com_img_tensor = transform(com_img)
+    com_img_tensor = com_img_tensor[None]
+
+    # compose the input
+    input_img = t.cat((com_img_tensor, tri_img_tensor), dim=1)
     input_img = input_img.to(device)
 
+    # get the generated alpha
     fake_alpha = net_G(input_img)
+    print(net_G)
 
-    com_img = real_img * fake_alpha.detach().cpu()
+    print(input_img.size())
+
+    # get the fg via the alpha
+    img = fake_alpha.detach().cpu() * com_img_tensor
 
     vis.images(fake_alpha.detach().cpu().numpy(), win='fake-alpha')
-    vis.images(real_img.numpy() * 0.5 + 0.5, win='real_img')
-    vis.images(com_img.numpy()*0.5 + 0.5, win='com_img')
+    vis.images(img.numpy() * 0.5 + 0.5, win='real')
+    # vis.images(crop_img.numpy() * 0.5 + 0.5, win='real_img')
+    vis.images(com_img_tensor.numpy() * 0.5 + 0.5, win='com_img')
+    vis.images(tri_img_tensor.numpy() * 0.5 + 0.5, win='tri_map')
+
+    return
 
 
 test()

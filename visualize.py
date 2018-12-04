@@ -41,14 +41,14 @@ class Visualizer():
         for k, v in d.items():
             self.img(k, v)
 
-    def plot(self, name, y):
+    def plot(self, name, y, legend=None):
         """
         self.plot('loss',1.00)
         """
         x = self.index.get(name, 0)
         self.vis.line(Y=np.array([y]), X=np.array([x]),
                       win=(name),
-                      opts=dict(title=name),
+                      opts=dict(title=name) if legend is None else dict(title=name, legend=legend),
                       update=None if x == 0 else 'append'
                       )
         self.index[name] = x + 1
