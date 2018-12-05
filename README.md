@@ -94,8 +94,12 @@ My code is inspired by:
 
 Although I train this network with the fixed size input(320*320), it can still process different size of images.
 
-The testing result after 15 epoch
+### The testing result after 15 epoch
 
 ![skip_connection](src/skip_connection_whole.jpg)
 
 ![skip_connection](src/skip_connection_whole_1.jpg)
+
+### ground-truth
+
+![ball_alpha.png](src/ball_alpha.png)
