@@ -86,10 +86,16 @@ My code is inspired by:
 
 - [pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
 
-- [pytorch-book](https://github.com/chenyuntc/pytorch-book) 中的GAN生成动漫头像
+- [pytorch-book](https://github.com/chenyuntc/pytorch-book) chapter7 generate anime head portrait with GAN
 
 - [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception)
 
 # Test Result
 
-I'm still waiting for the result of the latest model.
+Although I train this network with the fixed size input(320*320), it can still process different size of images.
+
+The testing result after 15 epoch
+
+![skip_connection](src/skip_connection_whole.jpg)
+
+![skip_connection](src/skip_connection_whole_1.jpg)

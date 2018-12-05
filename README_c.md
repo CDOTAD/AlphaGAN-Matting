@@ -204,6 +204,14 @@ $ L_{comp} $可以约束图像边缘部分的点，GAN不再生成离散的，�
 
 ![whole_image](src/whole_image.jpg)
 
+skip connection 有奇效呀。15个epoch后的结果
+
+![skip_connection_whole](src/skip_connection_whole.jpg)
+
+![skip_connection_whole](src/skip_connection_whole_1.jpg)
+
+ground-truth
+
 ![ball_alpha.png](src/ball_alpha.png)
 
 
