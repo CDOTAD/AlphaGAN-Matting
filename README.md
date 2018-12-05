@@ -100,6 +100,12 @@ Although I train this network with the fixed size input(320*320), it can still p
 
 ![skip_connection](src/skip_connection_whole_1.jpg)
 
+### After 35 epoch
+
+![35_epoch](src/35_epoch.jpg)
+
+![35_epoch](src/35_epoch_1.jpg)
+
 ### ground-truth
 
 ![ball_alpha.png](src/ball_alpha.png)
