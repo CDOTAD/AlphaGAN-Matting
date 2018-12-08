@@ -35,22 +35,11 @@ class ASPP(nn.Module):
 
     def __init__(self, in_channels, out_channels):
         super(ASPP, self).__init__()
-        '''
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
-        self.aspp_6 = _AsppBlock(in_channels=out_channels, out_channels=out_channels, dilation_rate=6)
-        # nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, dilation=6, padding=6)
-        self.aspp_12 = _AsppBlock(in_channels=2*out_channels, out_channels=out_channels, dilation_rate=12)
-        # nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, dilation=12, padding=12)
-        self.aspp_18 = _AsppBlock(in_channels=3*out_channels, out_channels=out_channels, dilation_rate=18)
-        # nn.Conv2d(in_channels=768, out_channels=256, kernel_size=3, dilation=18, padding=18)
-        '''
+        
         self.aspp_1 = _AsppBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=1, dilation_rate=1)
         self.aspp_6 = _AsppBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=3, dilation_rate=6)
-        # nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, dilation=6, padding=6)
         self.aspp_12 = _AsppBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=3, dilation_rate=12)
-        # nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, dilation=12, padding=12)
         self.aspp_18 = _AsppBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=3, dilation_rate=18)
-        # nn.Conv2d(in_channels=768, out_channels=256, kernel_size=3, dilation=18, padding=18)
 
         self.image_pooling = nn.Sequential(
             nn.AvgPool2d(kernel_size=3, stride=1, padding=1),
@@ -66,20 +55,7 @@ class ASPP(nn.Module):
         )
 
     def forward(self, x):
-        '''
-        x = self.conv1(input)
-
-        aspp6 = self.aspp_6(x)
-        x = t.cat((aspp6, x), dim=1)
-
-        aspp12 = self.aspp_12(x)
-        x = t.cat((aspp12, x), dim=1)
-
-        aspp18 = self.aspp_18(x)
-        x = t.cat((aspp18, x), dim=1)
-
-        x = self.image_pooling(x)
-        '''
+    
         aspp1 = self.aspp_1(x)    # 256
         aspp6 = self.aspp_6(x)    # 256
         aspp12 = self.aspp_12(x)  # 256
@@ -151,18 +127,13 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilation=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilation=2)
-        # self.avgpool = nn.AvgPool2d(7, stride=1)
-        # self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
-                '''
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                '''
+
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
@@ -188,18 +159,16 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         skip_connection1 = x  # 320 x 320
-        # print('skip_connection1.size()', skip_connection1.size())
+
         x = self.conv_1(x)
         x = self.bn1(x)
         x = self.relu(x)
         skip_connection2 = x  # 160 x 160
-        # print('skip_connection2.size()', skip_connection2.size())
 
         x = self.maxpool(x)
 
         x = self.layer1(x)
         skip_connection3 = x  # 80 x 80
-        # print('skip_connection3.size()', skip_connection1.size())
 
         x = self.layer2(x)
         x = self.layer3(x)
@@ -251,8 +220,7 @@ class Encoder(nn.Module):
     def forward(self, x):
 
         x, skip_connection1, skip_connection2, skip_connection3 = self.resnet50(x)
-        # print('atrous_resnet50')
-        # print(x.size())
+
         x = self.aspp(x)
 
         return x, skip_connection1, skip_connection2, skip_connection3
@@ -451,6 +419,8 @@ class AlphaGAN(object):
         self.fine_tune = args.fine_tune
         self.visual = args.visual
         self.env = args.env
+        self.d_every = args.d_every
+        self.g_every = args.g_every
 
         if self.fine_tune:
             self.model_G = args.model
@@ -508,7 +478,7 @@ class AlphaGAN(object):
                 # vis.images(tri_img.numpy()*0.5 + 0.5, win='tri_map')
 
                 # train D
-                if ii % 1 == 0:
+                if ii % self.d_every == 0:
                     self.D_optimizer.zero_grad()
 
                     # real_img_d = input_img[:, 0:3, :, :]
@@ -545,7 +515,7 @@ class AlphaGAN(object):
                     self.D_error_meter.add(loss_D.item())
 
                 # train G
-                if ii % 5 == 0:
+                if ii % self.g_every == 0:
                     self.G_optimizer.zero_grad()
 
                     real_img_g = input_img[:, 0:3, :, :]

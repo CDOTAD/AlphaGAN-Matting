@@ -15,7 +15,7 @@ The chinese verison [README](README_c.md)
 
 ## Adobe Deep Image Matting Dataset
 
-Follow the [instruction](https://sites.google.com/view/deepimagematting) to contact author for the dataset
+Follow the [instruction](https://sites.google.com/view/deepimagematting) to contact the author for the dataset
 
 You might need to follow the method mentioned in the **Deep Image Matting** to generate the trimap using the alpha mat. Here is a algorithm written by someone.
 
@@ -106,6 +106,10 @@ Although I train this network with the fixed size input(320*320), it can still p
 
 ![35_epoch](src/35_epoch_1.jpg)
 
-### ground-truth
+### Ground-truth
 
-![ball_alpha.png](src/ball_alpha.png)
+![ball_alpha](src/ball_alpha.png)
+
+### Trimap
+
+![trimap](src/ball_tri.png)

@@ -15,7 +15,7 @@
 
 ## Adobe Deep Image Matting Dataset
 
-Follow the [instruction](https://sites.google.com/view/deepimagematting) to contact author for the dataset
+Follow the [instruction](https://sites.google.com/view/deepimagematting) to contact the author for the dataset
 
 你可能还需要按照Deep Image Matting中论文的方法在alpha mat的基础上生成trimap，这是一个别人实现的方法
 
