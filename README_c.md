@@ -178,20 +178,19 @@ GAN是一个很难训练的网络模型，很可能就会出现生成结果不�
 
 AlphaGAN的损失函数由GAN的对抗损失与[Deep Image Matting](https://sites.google.com/view/deepimagematting)中提出的alpha-prediction loss和compositional loss构成，所以AlphaGAN的Loss如下：
 
-<img src="http://www.forkosh.com/mathtex.cgi? \Large x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}">
+<center><a href="https://www.codecogs.com/eqnedit.php?latex=L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" title="L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D)" /></a></center>
 
-$$ L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D) $$
 
-去掉$ L_{comp} $，几轮epoch后的训练结果
+去掉<a href="https://www.codecogs.com/eqnedit.php?latex=L_{comp}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{comp}" title="L_{comp}" /></a>，几轮epoch后的训练结果
 ![ganloss&alphaloss](src/ganloss_alphaloss.png)
 
-去掉$ L_{comp} $，数轮epoch后的训练结果
+去掉<a href="https://www.codecogs.com/eqnedit.php?latex=L_{comp}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{comp}" title="L_{comp}" /></a>，数轮epoch后的训练结果
 ![ganloss&alphaloss](src/ganloss_alphaloss_1.png)
 
 全部Loss
 ![fullloss](src/full_loss.png)
 
-$ L_{comp} $可以约束图像边缘部分的点，GAN不再生成离散的，不准确的像素点。$ L_{comp} $可以使GAN生成一个效果更好，更加连续的结果。
+<a href="https://www.codecogs.com/eqnedit.php?latex=L_{comp}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{comp}" title="L_{comp}" /></a>可以约束图像边缘部分的点，GAN不再生成离散的，不准确的像素点。<a href="https://www.codecogs.com/eqnedit.php?latex=L_{comp}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{comp}" title="L_{comp}" /></a>可以使GAN生成一个效果更好，更加连续的结果。
 
 # Test Reslut
 
