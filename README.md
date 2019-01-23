@@ -1,17 +1,11 @@
 # AlphaGAN
 
+[![LICENSE](https://img.shields.io/badge/LICENSE-Apach2.0-blue.svg)](LICENSE)
 ![](https://img.shields.io/badge/python-3.6.5-brightgreen.svg) ![](https://img.shields.io/badge/pytorch-0.4.1-brightgreen.svg) ![](https://img.shields.io/badge/visdom-0.1.8.5-brightgreen.svg) ![](https://img.shields.io/badge/tqdm-4.28.1-brightgreen.svg) ![](https://img.shields.io/badge/opencv-3.3.1-brightgreen.svg)
 
 This project is a repo of [AlphaGAN: Generative adversarial networks for natural image matting](https://arxiv.org/pdf/1807.10088.pdf) published at the BMVC 2018. As for now, the result of my experiment is not as good as the paper's.
 
 The chinese verison [README](README_c.md)
-
-# Dependencies
-
-- Python 3
-- Pytorch 0.4
-- visdom 0.1.8.5
-- OpenCV
 
 # Dataset
 
@@ -33,7 +27,6 @@ def generate_trimap(alpha):
     unknown = cv.dilate(unknown, kernel, iterations=np.random.randint(1, 20))
     trimap = fg * 255 + (unknown - fg) * 128
     return trimap.astype(np.uint8)
-
 ```
 
 The Dataset structure in my project
@@ -58,15 +51,12 @@ You need to specified the dataroot and the folder to save your model
 
 ```Bash
 python alphaGAN_train.py --dataroot ${your_dataroot} --save_dir ${your_modelroot}
-
 ```
 
 If you want to visualize the training process, you need to start the visdom first. 
 
 ```Bash
-
 python -m visdom.server
-
 ```
 
 The visualization is set to be True by default. You can disable the visualization by
@@ -77,9 +67,7 @@ python alphaGAN_train.py --visual 0
 
 For more details
 ```Bash
-
 python alphaGAN_train.py --help
-
 ```
 
 # Acknowledgments

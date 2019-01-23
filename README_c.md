@@ -1,18 +1,12 @@
 # AlphaGAN
 
+[![LICENSE](https://img.shields.io/badge/LICENSE-Apach2.0-blue.svg)](LICENSE)
 ![](https://img.shields.io/badge/python-3.6.5-brightgreen.svg) ![](https://img.shields.io/badge/pytorch-0.4.1-brightgreen.svg) ![](https://img.shields.io/badge/visdom-0.1.8.5-brightgreen.svg) ![](https://img.shields.io/badge/tqdm-4.28.1-brightgreen.svg) ![](https://img.shields.io/badge/opencv-3.3.1-brightgreen.svg)
 
 >课程项目要求做image matting，于是找到了一篇这样的论文做image matting。刚好也对GAN比较感兴趣，GAN作为一种生成模型，至今已经在图像生成，图像风格转移等方面取得了很好的效果，那么使用GAN从trimap domain转换到alphamap domain应该是个自然的想法。
 
 本项目是参考BMVC 2018的一篇论文
 [AlphaGAN: Generative adversarial networks for natural image matting](https://arxiv.org/pdf/1807.10088.pdf)的复现。~~目前还没有采用论文中的skip connection~~。效果也不是很好，或者说效果比较差吧╮(￣▽￣)╭。
-
-# Dependencies
-
-- Python 3
-- Pytorch 0.4
-- visdom 0.1.8.5
-- OpenCV
 
 # Dataset
 
@@ -34,7 +28,6 @@ def generate_trimap(alpha):
     unknown = cv.dilate(unknown, kernel, iterations=np.random.randint(1, 20))
     trimap = fg * 255 + (unknown - fg) * 128
     return trimap.astype(np.uint8)
-
 ```
 项目中的DataSet目录结构
 ```Bash
@@ -53,29 +46,21 @@ Train
 
 如果，你把目录建的和我一样那你可以直接，当然这几乎不可能~
 ```Bash
-
 python alphaGAN_train.py
-
 ```
 你需要设定数据的地址与模型保存的地址
 ```Bash
-
 python alphaGAN_train.py --dataroot ${your_dataroot} --save_dir ${your_modelroot}
-
 ```
 
 可视化前，你需要启动visdom服务
 ```Bash
-
 python -m visdom.server
-
 ```
 
 获得更多参数
 ```Bash
-
 python alphaGAN_train.py --help
-
 ```
 
 # Acknowledgments
@@ -178,7 +163,7 @@ GAN是一个很难训练的网络模型，很可能就会出现生成结果不�
 
 AlphaGAN的损失函数由GAN的对抗损失与[Deep Image Matting](https://sites.google.com/view/deepimagematting)中提出的alpha-prediction loss和compositional loss构成，所以AlphaGAN的Loss如下：
 
-<center><a href="https://www.codecogs.com/eqnedit.php?latex=L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" title="L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D)" /></a></center>
+<center> <a href="https://www.codecogs.com/eqnedit.php?latex=L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" title="L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D)" /></a> </center>
 
 
 去掉<a href="https://www.codecogs.com/eqnedit.php?latex=L_{comp}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{comp}" title="L_{comp}" /></a>，几轮epoch后的训练结果
