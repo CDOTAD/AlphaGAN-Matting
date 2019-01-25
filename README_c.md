@@ -163,7 +163,9 @@ GAN是一个很难训练的网络模型，很可能就会出现生成结果不�
 
 AlphaGAN的损失函数由GAN的对抗损失与[Deep Image Matting](https://sites.google.com/view/deepimagematting)中提出的alpha-prediction loss和compositional loss构成，所以AlphaGAN的Loss如下：
 
-<center> <a href="https://www.codecogs.com/eqnedit.php?latex=L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" title="L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D)" /></a> </center>
+<center> 
+    <a href="https://www.codecogs.com/eqnedit.php?latex=L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{AlphaGAN}(G,&space;D)&space;=&space;L_{alpha}(G)&space;&plus;&space;L_{comp}(G)&space;&plus;&space;L_{GAN}(G,&space;D)" title="L_{AlphaGAN}(G, D) = L_{alpha}(G) + L_{comp}(G) + L_{GAN}(G, D)" /></a>
+</center>
 
 
 去掉<a href="https://www.codecogs.com/eqnedit.php?latex=L_{comp}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?L_{comp}" title="L_{comp}" /></a>，几轮epoch后的训练结果
