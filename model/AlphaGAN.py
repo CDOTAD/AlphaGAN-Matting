@@ -444,10 +444,10 @@ class AlphaGAN(object):
         self.D_optimizer = t.optim.Adam(self.D.parameters(), lr=self.lrD)
         
         if self.gpu_mode:
-            self.G.to(self.device)
-            self.D.to(self.device)
-            self.G_criterion = t.nn.SmoothL1Loss().to(self.device)
-            self.D_criterion = t.nn.MSELoss().to(self.device)
+            self.G.cuda()
+            self.D.cuda()
+            self.G_criterion = t.nn.SmoothL1Loss().cuda()
+            self.D_criterion = t.nn.MSELoss().cuda()
 
         self.G_error_meter = AverageValueMeter()
         self.Alpha_loss_meter = AverageValueMeter()
@@ -465,14 +465,14 @@ class AlphaGAN(object):
                 tri_img = data['T']
 
                 if self.com_loss:
-                    bg_img = data['B'].to(self.device)
-                    fg_img = data['F'].to(self.device)
+                    bg_img = data['B'].cuda()
+                    fg_img = data['F'].cuda()
 
                 # input to the G
-                input_img = t.tensor(np.append(real_img.numpy(), tri_img.numpy(), axis=1)).to(self.device)
+                input_img = t.tensor(np.append(real_img.numpy(), tri_img.numpy(), axis=1)).cuda()
 
                 # real_alpha
-                real_alpha = data['A'].to(self.device)
+                real_alpha = data['A'].cuda()
 
                 # vis.images(real_img.numpy()*0.5 + 0.5, win='input_real_img')
                 # vis.images(real_alpha.cpu().numpy()*0.5 + 0.5, win='real_alpha')
@@ -492,7 +492,7 @@ class AlphaGAN(object):
                         real_d = self.D(t.cat([real_alpha, tri_img_d], dim=1))
 
                     target_real_label = t.tensor(1.0)
-                    target_real = target_real_label.expand_as(real_d).to(self.device)
+                    target_real = target_real_label.expand_as(real_d).cuda()
 
                     loss_d_real = self.D_criterion(real_d, target_real)
                     #loss_d_real.backward()
@@ -506,7 +506,7 @@ class AlphaGAN(object):
                         fake_d = self.D(t.cat([fake_alpha, tri_img_d], dim=1))
                     target_fake_label = t.tensor(0.0)
 
-                    target_fake = target_fake_label.expand_as(fake_d).to(self.device)
+                    target_fake = target_fake_label.expand_as(fake_d).cuda()
 
                     loss_d_fake = self.D_criterion(fake_d, target_fake)
 
@@ -539,7 +539,7 @@ class AlphaGAN(object):
 
                     else:
                         fake_d = self.D(t.cat([fake_alpha, tri_img_g], dim=1))
-                    target_fake = t.tensor(1.0).expand_as(fake_d).to(self.device)
+                    target_fake = t.tensor(1.0).expand_as(fake_d).cuda()
                     loss_g_d = self.D_criterion(fake_d, target_fake)
 
                     self.Adv_loss_meter.add(loss_g_d.item())
