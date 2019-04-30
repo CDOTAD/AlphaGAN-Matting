@@ -87,8 +87,8 @@ class InputDataset(data.Dataset):
         fg_path = self.fg_paths[index]
 
         input_img = Image.open(input_path).convert('RGB')
-        trimap_img = Image.open(trimap_path)
-        alpha_img = Image.open(alpha_path)
+        trimap_img = Image.open(trimap_path).convert('L')
+        alpha_img = Image.open(alpha_path).convert('L')
         bg_img = Image.open(bg_path).convert('RGB')
         fg_img = Image.open(fg_path).convert('RGB')
 

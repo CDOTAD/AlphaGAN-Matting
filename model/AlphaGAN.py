@@ -442,6 +442,7 @@ class AlphaGAN(object):
 
         self.G_optimizer = t.optim.Adam(self.G.parameters(), lr=self.lrG)
         self.D_optimizer = t.optim.Adam(self.D.parameters(), lr=self.lrD)
+        
         if self.gpu_mode:
             self.G.to(self.device)
             self.D.to(self.device)

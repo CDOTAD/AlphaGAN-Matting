@@ -22,7 +22,7 @@ def parse_args():
 
     parser.add_argument('--save_dir', type=str, default='/home/zzl/model/alphaGAN/full_loss', help='Directory name to save the model')
     parser.add_argument('--gpu_mode', type=str2bool, nargs='?', default=True, help='Use gpu mode (default: True)')
-    parser.add_argument('--device', type=str, default='cuda:0', help='The cuda device that to be used (defult: cuda:0)')
+    parser.add_argument('--device', type=str, default='0', help='The cuda device that to be used (defult: 0)')
 
     parser.add_argument('--d_every', type=int, default=5, help='the frequency of training D (default: 5)')
     parser.add_argument('--g_every', type=int, default=1, help='the frequency of training G (default: 1)')
@@ -65,10 +65,11 @@ def check_args(args):
 def main():
 
     args = parse_args()
-    print(args.gpu_mode)
     if args is None:
         exit()
-
+    if args.gpu_mode:
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(args.device)
+    
     data_loader = AlphaGANDataLoader(args)
     dataset = data_loader.load_data()
 
