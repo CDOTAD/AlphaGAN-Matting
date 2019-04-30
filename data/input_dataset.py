@@ -29,23 +29,6 @@ def make_dataset(dir):
     return images
 
 
-def random_choice(trimap, crop_size=(320, 320)):
-    crop_height, crop_width = crop_size
-
-    (h, w) = trimap.size
-    x = np.random.randint(int(crop_height/2), h - int(crop_height/2))
-    y = np.random.randint(int(crop_width/2), w - int(crop_width/2))
-    return x, y
-
-
-def safe_crop(img, x, y):
-
-    region = (x-160, y - 160, x + 160, y + 160)
-    crop_img = img.crop(region)
-
-    return crop_img
-
-
 class InputDataset(data.Dataset):
     def __init__(self, dataroot):
         super(InputDataset, self).__init__()
