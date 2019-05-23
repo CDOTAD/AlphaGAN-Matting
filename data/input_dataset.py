@@ -56,9 +56,14 @@ class InputDataset(data.Dataset):
         self.trimap_size = len(self.trimap_paths)
         self.alpha_size = len(self.alpha_paths)
 
-        self.transform = transforms.Compose([
+        self.transform_rgb = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        self.transform_l = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5])
         ])
 
     def __getitem__(self, index):
@@ -75,13 +80,11 @@ class InputDataset(data.Dataset):
         bg_img = Image.open(bg_path).convert('RGB')
         fg_img = Image.open(fg_path).convert('RGB')
 
-        #x, y = random_choice(trimap_img)
-
-        I = self.transform(input_img)
-        T = self.transform(trimap_img)
-        A = self.transform(alpha_img)
-        B = self.transform(bg_img)
-        F = self.transform(fg_img)
+        I = self.transform_rgb(input_img)
+        T = self.transform_l(trimap_img)
+        A = self.transform_l(alpha_img)
+        B = self.transform_rgb(bg_img)
+        F = self.transform_rgb(fg_img)
 
         return {'I': I, 'T': T, 'A': A,
                 'B': B, 'F': F}
