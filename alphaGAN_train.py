@@ -16,17 +16,16 @@ def str2bool(v):
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataroot', type=str, default='/home/zzl/dataset/matting/Train', help='Training data root')
+    parser.add_argument('--dataroot', type=str, default='/data0/zzl/dataset/matting/Train', help='Training data root')
     parser.add_argument('--epoch', type=int, default=1000, help='The number of epochs to run (default: 1000)')
-    parser.add_argument('--batch_size', type=int, default=4, help='The size of batch (default: 4)')
+    parser.add_argument('--batch_size', type=int, default=32, help='The size of batch (default: 4)')
 
-    parser.add_argument('--save_dir', type=str, default='/home/zzl/model/alphaGAN/full_loss', help='Directory name to save the model')
+    parser.add_argument('--save_model', type=str2bool, nargs='?', default=False)
+    parser.add_argument('--save_dir', type=str, default='/home/zzl/model/alphaGAN/new_train', help='Directory name to save the model')
     parser.add_argument('--gpu_mode', type=str2bool, nargs='?', default=True, help='Use gpu mode (default: True)')
-    parser.add_argument('--device', type=str, default='0', help='The cuda device that to be used (defult: 0)')
+    parser.add_argument('--device', type=str, default='0, 1, 3', help='The cuda device that to be used (defult: 0)')
+    parser.add_argument('--gan', type=str2bool, nargs='?', default=True, help='Whether to use Discrimator (default: True)')
 
-    parser.add_argument('--d_every', type=int, default=5, help='the frequency of training D (default: 5)')
-    parser.add_argument('--g_every', type=int, default=1, help='the frequency of training G (default: 1)')
-    
     parser.add_argument('--lrG', type=float, default=0.0002, help='The learning rate of G (default: 0.0002)')
     parser.add_argument('--lrD', type=float, default=0.0002, help='The learning rate of D (default: 0.0002)')
     parser.add_argument('--com_loss', type=bool, default=True, help='Whether to use com_loss (default: True)')
@@ -35,19 +34,19 @@ def parse_args():
     parser.add_argument('--model', type=str, help='Directory to get model')
 
     parser.add_argument('--visual', type=str2bool, nargs='?', default=True, help='Whether to visualize the process (default: True)')
-    parser.add_argument('--env', type=str, default='alphaGAN', help='The name of the visdom environment (default: alphaGAN)')
+    parser.add_argument('--env', type=str, default='alphaGAN_t_2', help='The name of the visdom environment (default: alphaGAN_train)')
 
     return check_args(parser.parse_args())
 
 
 def check_args(args):
-
-    save_D_dir = os.path.join(args.save_dir, 'netD')
-    save_G_dir = os.path.join(args.save_dir, 'netG')
-    if not os.path.exists(args.save_dir):
-        os.mkdir(args.save_dir)
-        os.mkdir(save_D_dir)
-        os.mkdir(save_G_dir)
+    if args.save_model:
+        save_D_dir = os.path.join(args.save_dir, 'netD')
+        save_G_dir = os.path.join(args.save_dir, 'netG')
+        if not os.path.exists(args.save_dir):
+            os.mkdir(args.save_dir)
+            os.mkdir(save_D_dir)
+            os.mkdir(save_G_dir)
 
     try:
         assert args.epoch >= 1
@@ -65,11 +64,13 @@ def check_args(args):
 def main():
 
     args = parse_args()
+    print(args.gpu_mode)
     if args is None:
         exit()
+
     if args.gpu_mode:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(args.device)
-    
+
     data_loader = AlphaGANDataLoader(args)
     dataset = data_loader.load_data()
 
