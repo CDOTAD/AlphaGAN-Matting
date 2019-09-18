@@ -1,6 +1,9 @@
 import torch as t
 from torch import nn
 
+def conv3x3(in_planes, out_planes, stride=1):
+    "3x3 convolution with padding"
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
 # decoder
 class Decoder(nn.Module):
@@ -11,15 +14,16 @@ class Decoder(nn.Module):
         # bilinear
         self.bilinear = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-            nn.LeakyReLU(0.2),
-            nn.BatchNorm2d(256)
+            conv3x3(in_planes=256, out_planes=256),
+            nn.BatchNorm2d(256),
+            nn.ReLU()
         )
         # output: 256 x 80 x 80
 
         self.skip_3 = nn.Sequential(
             nn.Conv2d(in_channels=256, out_channels=48, kernel_size=1),
             nn.BatchNorm2d(48),
-            nn.LeakyReLU(0.2)
+            nn.ReLU()
 
         )
 
@@ -29,25 +33,19 @@ class Decoder(nn.Module):
             nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=3, padding=1),
             nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2)
+            nn.ReLU()
         )
         # output: 64 x 80 x 80
 
         # unpooling
-        # well I do not  konw how to get the indices, which is requested by the MaxUnpool2d
-        # Therefore, I use the ConvTranspose2d instead of MaxUnpool2d
-        # nn.MaxUnpool2d(kernel_size=2, stride=2),
-        self.unpooling = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=64, out_channels=64, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2)
-        )
+        self.unpooling = nn.MaxUnpool2d(kernel_size=2, stride=2)
+
         # output: 64 x 160 x 160
 
         self.skip_2 = nn.Sequential(
             nn.Conv2d(in_channels=64, out_channels=32, kernel_size=1),
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2)
+            nn.ReLU()
         )
 
         # deconv2_x
@@ -56,7 +54,7 @@ class Decoder(nn.Module):
             nn.ConvTranspose2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
             nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2)
+            nn.ReLU()
         )
         # output: 32 x 320 x 320
 
@@ -65,7 +63,7 @@ class Decoder(nn.Module):
             nn.ConvTranspose2d(in_channels=32+4, out_channels=32, kernel_size=3, padding=1),
             nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2)
+            nn.ReLU()
         )
         # output: 32 x 320 x 320
 
@@ -89,7 +87,7 @@ class Decoder(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        x, skip_connection1, skip_connection2, skip_connection3 = x
+        x, skip_connection1, skip_connection2, skip_connection3, max_index = x
         x = self.bilinear(x)
 
         skip_connection3 = self.skip_3(skip_connection3)
@@ -97,7 +95,7 @@ class Decoder(nn.Module):
         x = t.cat([x, skip_connection3], dim=1)
         x = self.deconv1_x(x)
 
-        x = self.unpooling(x)
+        x = self.unpooling(x, max_index)
         skip_connection2 = self.skip_2(skip_connection2)
         x = t.cat([x, skip_connection2], dim=1)
         x = self.deconv2_x(x)

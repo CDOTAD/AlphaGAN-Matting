@@ -7,6 +7,7 @@ from visualize import Visualizer
 import numpy as np
 from torchnet.meter import AverageValueMeter
 from utils.Tester import Tester
+from .AlphaLoss import AlphaLoss
 
 
 # G
@@ -45,20 +46,23 @@ class AlphaGAN(object):
 
         # network init
         netG = NetG()
+
         if self.com_loss:
             netD = NLayerDiscriminator(input_nc=4)
         else:
             netD = NLayerDiscriminator(input_nc=2)
 
+        # netD = NLayerDiscriminator(input_nc=1)
+
         if self.gpu_mode:
             self.G = nn.DataParallel(netG).cuda()
             self.D = nn.DataParallel(netD).cuda()
-            self.G_criterion = t.nn.SmoothL1Loss().cuda()
+            self.G_criterion = AlphaLoss().cuda()
             self.D_criterion = t.nn.MSELoss().cuda()
         else:
             self.G = netG
             self.D = netD
-            self.G_criterion = t.nn.SmoothL1Loss()
+            self.G_criterion = AlphaLoss()
             self.D_criterion = t.nn.MSELoss()
 
         self.G_optimizer = t.optim.Adam(self.G.parameters(), lr=self.lrG, weight_decay=0.0005)
@@ -115,6 +119,7 @@ class AlphaGAN(object):
 
                     # 迷惑判别器
                     fake_d = self.D(t.cat([fake_img, tri_img_g], dim=1))
+                    # fake_d = self.D(fake_alpha)
                     self.Com_loss_meter.add(loss_g_cmp.item())
                     loss_G = loss_G + loss_g_cmp
                 else:
@@ -131,6 +136,7 @@ class AlphaGAN(object):
                 self.G_error_meter.add(loss_G.item())
 
                 # train D
+
                 self.set_requires_grad([self.D], True)
                 self.D_optimizer.zero_grad()
 
@@ -140,6 +146,7 @@ class AlphaGAN(object):
                 # 真正的alpha 交给判别器判断
                 if self.com_loss:
                     real_d = self.D(input_img)
+                    # real_d = self.D(real_alpha)
                 else:
                     real_d = self.D(t.cat([real_alpha, tri_img_d], dim=1))
 
@@ -153,6 +160,7 @@ class AlphaGAN(object):
                 if self.com_loss:
                     fake_img = fake_alpha*fg_img + (1 - fake_alpha) * bg_img
                     fake_d = self.D(t.cat([fake_img, tri_img_d], dim=1))
+                    # fake_d = self.D(fake_alpha)
                 else:
                     fake_d = self.D(t.cat([fake_alpha, tri_img_d], dim=1))
                 target_fake_label = t.tensor(0.0)
