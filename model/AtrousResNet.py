@@ -54,11 +54,11 @@ class ResNet(nn.Module):
                                 bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU()
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, return_indices=True)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilation=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilation=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilation=4)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -95,18 +95,23 @@ class ResNet(nn.Module):
         x = self.conv_1(x)
         x = self.bn1(x)
         x = self.relu(x)
+        # print('resnet50.forward.x.size : ', x.size())
         skip_connection2 = x  # 160 x 160
 
-        x = self.maxpool(x)
+        x, max_index = self.maxpool(x)
 
         x = self.layer1(x)
+        # print('resnet50.forward.x.size : ', x.size())
         skip_connection3 = x  # 80 x 80
 
         x = self.layer2(x)
+        # print('resnet50.forward.x.size : ', x.size())
         x = self.layer3(x)
+        # print('resnet50.forward.x.size : ', x.size())
         x = self.layer4(x)
+        # print('resnet50.forward.x.size : ', x.size())
 
-        return x, skip_connection1, skip_connection2, skip_connection3
+        return x, skip_connection1, skip_connection2, skip_connection3, max_index
 
 
 def resnet50():

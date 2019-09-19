@@ -38,9 +38,9 @@ class Encoder(nn.Module):
 
     def forward(self, x):
 
-        x, skip_connection1, skip_connection2, skip_connection3 = self.resnet50(x)
+        x, skip_connection1, skip_connection2, skip_connection3, max_index = self.resnet50(x)
 
         x = self.aspp(x)
 
-        return x, skip_connection1, skip_connection2, skip_connection3
+        return x, skip_connection1, skip_connection2, skip_connection3, max_index
 

@@ -35,7 +35,6 @@ class AlphaGAN(object):
         self.device = args.device
         self.lrG = args.lrG
         self.lrD = args.lrD
-        self.com_loss = args.com_loss
         self.fine_tune = args.fine_tune
         self.visual = args.visual
         self.env = args.env
@@ -47,12 +46,7 @@ class AlphaGAN(object):
         # network init
         netG = NetG()
 
-        if self.com_loss:
-            netD = NLayerDiscriminator(input_nc=4)
-        else:
-            netD = NLayerDiscriminator(input_nc=2)
-
-        # netD = NLayerDiscriminator(input_nc=1)
+        netD = NLayerDiscriminator(input_nc=1)
 
         if self.gpu_mode:
             self.G = nn.DataParallel(netG).cuda()
@@ -90,9 +84,9 @@ class AlphaGAN(object):
                 real_img = data['I']
                 tri_img = data['T']
 
-                if self.com_loss:
-                    bg_img = data['B'].cuda()
-                    fg_img = data['F'].cuda()
+
+                bg_img = data['B'].cuda()
+                fg_img = data['F'].cuda()
 
                 # input to the G
                 input_img = t.cat([real_img, tri_img], dim=1).cuda()
@@ -100,7 +94,9 @@ class AlphaGAN(object):
                 # real_alpha
                 real_alpha = data['A'].cuda()
 
+                #####################################
                 # train G
+                #####################################
                 self.set_requires_grad([self.D], False)
                 self.G_optimizer.zero_grad()
 
@@ -110,33 +106,30 @@ class AlphaGAN(object):
                 fake_alpha = self.G(input_img)
                 # fake_alpha 与 real_alpha的L1 loss
                 loss_g_alpha = self.G_criterion(fake_alpha, real_alpha)
-                loss_G = loss_g_alpha / self.batch_size
+
                 self.Alpha_loss_meter.add(loss_g_alpha.item())
 
-                if self.com_loss:
-                    fake_img = fake_alpha * fg_img + (1 - fake_alpha) * bg_img
-                    loss_g_cmp = self.G_criterion(fake_img, real_img_g) / self.batch_size
+                fake_img = fake_alpha * fg_img + (1 - fake_alpha) * bg_img
+                loss_g_cmp = self.G_criterion(fake_img, real_img_g)
+                self.Com_loss_meter.add(loss_g_cmp.item())
+                # 迷惑判别器
+                fake_d = self.D(fake_alpha)
+                # fake_d = self.D(fake_alpha)
 
-                    # 迷惑判别器
-                    fake_d = self.D(t.cat([fake_img, tri_img_g], dim=1))
-                    # fake_d = self.D(fake_alpha)
-                    self.Com_loss_meter.add(loss_g_cmp.item())
-                    loss_G = loss_G + loss_g_cmp
-                else:
-                    fake_d = self.D(t.cat([fake_alpha, tri_img_g], dim=1))
                 target_fake = t.tensor(1.0).expand_as(fake_d).cuda()
-                loss_g_d = self.D_criterion(fake_d, target_fake) / self.batch_size
+                loss_g_d = self.D_criterion(fake_d, target_fake)
 
                 self.Adv_loss_meter.add(loss_g_d.item())
 
-                loss_G = loss_G + loss_g_d
+                loss_G = loss_g_alpha + 0.001 * loss_g_d + 0.006 * loss_g_cmp
 
                 loss_G.backward()
                 self.G_optimizer.step()
                 self.G_error_meter.add(loss_G.item())
 
+                #########################################
                 # train D
-
+                #########################################
                 self.set_requires_grad([self.D], True)
                 self.D_optimizer.zero_grad()
 
@@ -144,54 +137,35 @@ class AlphaGAN(object):
                 tri_img_d = input_img[:, 3:4, :, :]
 
                 # 真正的alpha 交给判别器判断
-                if self.com_loss:
-                    real_d = self.D(input_img)
-                    # real_d = self.D(real_alpha)
-                else:
-                    real_d = self.D(t.cat([real_alpha, tri_img_d], dim=1))
+
+                real_d = self.D(real_alpha)
 
                 target_real_label = t.tensor(1.0)
                 target_real = target_real_label.expand_as(real_d).cuda()
 
-                loss_d_real = self.D_criterion(real_d, target_real) / self.batch_size
+                loss_d_real = self.D_criterion(real_d, target_real)
 
                 # 生成器生成fake_alpha 交给判别器判断
                 fake_alpha = self.G(input_img)
-                if self.com_loss:
-                    fake_img = fake_alpha*fg_img + (1 - fake_alpha) * bg_img
-                    fake_d = self.D(t.cat([fake_img, tri_img_d], dim=1))
-                    # fake_d = self.D(fake_alpha)
-                else:
-                    fake_d = self.D(t.cat([fake_alpha, tri_img_d], dim=1))
+
+                # fake_img = fake_alpha*fg_img + (1 - fake_alpha) * bg_img
+                # fake_d = self.D(t.cat([fake_img, tri_img_d], dim=1))
+                fake_d = self.D(fake_alpha)
+
                 target_fake_label = t.tensor(0.0)
 
                 target_fake = target_fake_label.expand_as(fake_d).cuda()
-                loss_d_fake = self.D_criterion(fake_d, target_fake) / self.batch_size
+                loss_d_fake = self.D_criterion(fake_d, target_fake)
 
-                loss_D = loss_d_real + loss_d_fake
+                loss_D = 0.5 * (loss_d_real + loss_d_fake)
                 loss_D.backward()
                 self.D_optimizer.step()
                 self.D_error_meter.add(loss_D.item())
-
-                '''
-                if self.visual and ii % 20 == 0:
+                if self.visual:
                     vis.plot('errord', self.D_error_meter.value()[0])
                     vis.plot('errorg', np.array([self.Adv_loss_meter.value()[0], self.Alpha_loss_meter.value()[0],
                                                  self.Com_loss_meter.value()[0]]), legend=['adv_loss', 'alpha_loss',
                                                                                            'com_loss'])
-
-                    vis.images(tri_img.numpy()*0.5 + 0.5, win='tri_map')
-                    vis.images(real_img.cpu().numpy() * 0.5 + 0.5, win='relate_real_input')
-                    vis.images(real_alpha.cpu().numpy() * 0.5 + 0.5, win='relate_real_alpha')
-                    vis.images(fake_alpha.detach().cpu().numpy(), win='fake_alpha')
-                    if self.com_loss:
-                        vis.images(fake_img.detach().cpu().numpy()*0.5 + 0.5, win='fake_img')
-                '''
-
-                vis.plot('errord', self.D_error_meter.value()[0])
-                vis.plot('errorg', np.array([self.Adv_loss_meter.value()[0], self.Alpha_loss_meter.value()[0],
-                                             self.Com_loss_meter.value()[0]]), legend=['adv_loss', 'alpha_loss',
-                                                                                       'com_loss'])
             self.G.eval()
             tester = Tester(net_G=self.G, test_root='/data0/zzl/dataset/matting/Test')
             test_result = tester.test(vis)
