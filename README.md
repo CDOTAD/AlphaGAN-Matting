@@ -7,7 +7,6 @@ This project is an unofficial implementation of [AlphaGAN: Generative adversaria
 
 **This is a course project of mine and there may exists some mistakes in this project.**
 
-The chinese verison [README](README_c.md)
 
 # Dataset
 
@@ -36,40 +35,11 @@ The Dataset structure in my project
 ```Bash
 Train
   ├── alpha  # the alpha ground-truth
-  ├── bg     # the background image
   ├── fg     # the foreground image
   ├── input  # the real image composed by the fg & bg
-  ├── trimap # the trimap
-```
+MSCOCO
+  ├── train2014 # the background image
 
-# Train & Test
-
-If your project and dataset has the same structure as mine, you could just run the code like below. 
-
-```Bash
-python alphaGAN_train.py
-```
-You need to specified the dataroot and the folder to save your model
-
-```Bash
-python alphaGAN_train.py --dataroot ${your_dataroot} --save_dir ${your_modelroot}
-```
-
-If you want to visualize the training process, you need to start the visdom first. 
-
-```Bash
-python -m visdom.server
-```
-
-The visualization is set to be True by default. You can disable the visualization by
-
-```Bash
-python alphaGAN_train.py --visual 0
-```
-
-For more details
-```Bash
-python alphaGAN_train.py --help
 ```
 
 # Acknowledgments
@@ -82,26 +52,6 @@ My code is inspired by:
 
 - [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception)
 
-# Test Result
+- [pytorch-deep-image-matting](https://https://github.com/huochaitiantang/pytorch-deep-image-matting)
 
-Although I train this network with the fixed size input(320*320), it can still process different size of images.
-
-### The testing result after 15 epoch
-
-![skip_connection](src/skip_connection_whole.jpg)
-
-![skip_connection](src/skip_connection_whole_1.jpg)
-
-### After 35 epoch
-
-![35_epoch](src/35_epoch.jpg)
-
-![35_epoch](src/35_epoch_1.jpg)
-
-### Ground-truth
-
-![ball_alpha](src/ball_alpha.png)
-
-### Trimap
-
-![trimap](src/ball_tri.png)
+- [indexnet_matting](https://github.com/poppinace/indexnet_matting)
