@@ -4,7 +4,7 @@ import torch.utils.data
 
 class AlphaGANDataLoader(object):
     def __init__(self, opt):
-        self.dataset = InputDataset(opt.dataroot)
+        self.dataset = InputDataset(opt.dataroot, opt.training_file, opt.bg_root)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             shuffle=True,

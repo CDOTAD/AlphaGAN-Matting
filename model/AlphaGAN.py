@@ -78,15 +78,13 @@ class AlphaGAN(object):
         for epoch in range(1, self.epoch):
 
             self.G.train()
-            self.D.train()
+
             for ii, data in enumerate(dataset):
 
                 real_img = data['I']
                 tri_img = data['T']
-
-
-                bg_img = data['B'].cuda()
-                fg_img = data['F'].cuda()
+                bg_img = data['B']
+                fg_img = data['F']
 
                 # input to the G
                 input_img = t.cat([real_img, tri_img], dim=1).cuda()
@@ -104,29 +102,48 @@ class AlphaGAN(object):
                 tri_img_g = input_img[:, 3:4, :, :]
 
                 fake_alpha = self.G(input_img)
-                # fake_alpha 与 real_alpha的L1 loss
-                loss_g_alpha = self.G_criterion(fake_alpha, real_alpha)
+
+                # alpha loss
+                loss_g_alpha = self.G_criterion(fake_alpha, real_alpha, tri_img_g)
 
                 self.Alpha_loss_meter.add(loss_g_alpha.item())
 
-                fake_img = fake_alpha * fg_img + (1 - fake_alpha) * bg_img
-                loss_g_cmp = self.G_criterion(fake_img, real_img_g)
-                self.Com_loss_meter.add(loss_g_cmp.item())
+                # compositional loss
+                comp = fake_alpha * fg_img.cuda() + (1. - fake_alpha) * bg_img.cuda()
+                loss_g_com = self.G_criterion(comp, real_img_g, tri_img_g)
+
+                self.Com_loss_meter.add(loss_g_com.item())
+
+                '''
+                vis.images(real_img.numpy() * 0.5 + 0.5, win='real_image', opts=dict(title='real_image'))
+                vis.images(bg_img.numpy() * 0.5 + 0.5, win='bg_image', opts=dict(title='bg_image'))
+                vis.images(fg_img.numpy() * 0.5 + 0.5, win='fg_image', opts=dict(title='fg_image'))
+                vis.images(tri_img.numpy() * 0.5 + 0.5, win='trimap', opts=dict(title='trimap'))
+                vis.images(real_alpha.detach().cpu().numpy() * 0.5 + 0.5, win='real_alpha', opts=dict(title='real_alpha'))
+                vis.images(fake_alpha.detach().cpu().numpy(), win='fake_alpha', opts=dict(title='fake_alpha'))
+                '''
+
+                '''
                 # 迷惑判别器
+                wi = t.zeros(tri_img_g.shape)
+                wi[((tri_img_g*0.5 + 0.5)*255) == 128] = 1.
+                t_wi = wi.cuda()
+                fake_alpha = (1 - t_wi) * tri_img_g + t_wi * fake_alpha
                 fake_d = self.D(fake_alpha)
-                # fake_d = self.D(fake_alpha)
+
+                # vis.images(fake_alpha.detach().cpu().numpy(), win='mask_fake_alpha', opts=dict(title='mask_fake_alpha'))
 
                 target_fake = t.tensor(1.0).expand_as(fake_d).cuda()
                 loss_g_d = self.D_criterion(fake_d, target_fake)
 
                 self.Adv_loss_meter.add(loss_g_d.item())
-
-                loss_G = loss_g_alpha + 0.001 * loss_g_d + 0.006 * loss_g_cmp
+                '''
+                loss_G = loss_g_alpha + loss_g_com # + 0.01 * loss_g_d
 
                 loss_G.backward()
                 self.G_optimizer.step()
                 self.G_error_meter.add(loss_G.item())
-
+                '''
                 #########################################
                 # train D
                 #########################################
@@ -147,7 +164,10 @@ class AlphaGAN(object):
 
                 # 生成器生成fake_alpha 交给判别器判断
                 fake_alpha = self.G(input_img)
-
+                wi = t.zeros(tri_img_g.shape)
+                wi[((tri_img_g * 0.5 + 0.5) * 255) == 128] = 1.
+                t_wi = wi.cuda()
+                fake_alpha = (1 - t_wi) * tri_img_g + t_wi * fake_alpha
                 # fake_img = fake_alpha*fg_img + (1 - fake_alpha) * bg_img
                 # fake_d = self.D(t.cat([fake_img, tri_img_d], dim=1))
                 fake_d = self.D(fake_alpha)
@@ -161,14 +181,22 @@ class AlphaGAN(object):
                 loss_D.backward()
                 self.D_optimizer.step()
                 self.D_error_meter.add(loss_D.item())
+                '''
                 if self.visual:
-                    vis.plot('errord', self.D_error_meter.value()[0])
-                    vis.plot('errorg', np.array([self.Adv_loss_meter.value()[0], self.Alpha_loss_meter.value()[0],
-                                                 self.Com_loss_meter.value()[0]]), legend=['adv_loss', 'alpha_loss',
-                                                                                           'com_loss'])
+                    #vis.plot('errord', self.D_error_meter.value()[0])
+                    vis.plot('errorg', np.array([self.Alpha_loss_meter.value()[0],
+                                                 self.Com_loss_meter.value()[0]]),
+                             legend=['alpha_loss', 'com_loss'])
+
+            ##############################
+            # test
+            ##############################
+
             self.G.eval()
-            tester = Tester(net_G=self.G, test_root='/data0/zzl/dataset/matting/Test')
+            tester = Tester(net_G=self.G,
+                            test_root='/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images')
             test_result = tester.test(vis)
+            print('sad : {0}, mse : {1}'.format(test_result['sad'], test_result['mse']))
             self.SAD_meter.add(test_result['sad'])
             self.MSE_meter.add(test_result['mse'])
 
@@ -180,10 +208,10 @@ class AlphaGAN(object):
             self.Alpha_loss_meter.reset()
             self.Com_loss_meter.reset()
             self.Adv_loss_meter.reset()
-            if epoch % 5 == 0:
-                if self.save_model:
-                    t.save(self.D.state_dict(), self.save_dir + '/netD' + '/netD_%s.pth' % epoch)
-                    t.save(self.G.state_dict(), self.save_dir + '/netG' + '/netG_%s.pth' % epoch)
+
+            if self.save_model:
+                # t.save(self.D.state_dict(), self.save_dir + '/netD' + '/netD_%s.pth' % epoch)
+                t.save(self.G.state_dict(), self.save_dir + '/netG' + '/netG_%s.pth' % epoch)
 
         return
 
