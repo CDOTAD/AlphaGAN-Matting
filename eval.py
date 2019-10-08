@@ -10,7 +10,7 @@ import tqdm
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
-MODEL_DIR = 'checkpoint/adv_train/netG/netG_18.pth'
+MODEL_DIR = 'checkpoint/no_aspp/netG/netG_3.pth'
 
 
 @t.no_grad()
@@ -110,6 +110,33 @@ def alphamatting():
             cv2.imwrite(trimap_floder+'/'+name, pred_mattes)
 
 
+@t.no_grad()
+def adobe():
+    netG = nn.DataParallel(NetG()).cuda()
+    netG.load_state_dict(t.load(MODEL_DIR, map_location=t.device('cpu')))
+    netG.eval()
+
+    ROOT = '/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images'
+    img_root = os.path.join(ROOT, 'image')
+    trimap_root = os.path.join(ROOT, 'trimaps')
+
+    img_names = sorted(os.listdir(img_root))
+
+    out_root = '/home/zzl/result'
+
+    for name in img_names:
+        img_path = os.path.join(img_root, name)
+        trimap_path = os.path.join(trimap_root, name)
+
+        img = cv2.imread(img_path)
+        trimap = cv2.imread(trimap_path)[:, :, 0]
+
+        pred_mattes = inference_img_whole(netG, img, trimap)
+
+        pred_mattes = pred_mattes.astype(np.uint8)
+        cv2.imwrite(out_root + '/' + name, pred_mattes)
+
+
 if __name__ == '__main__':
-    main()
+    alphamatting()
 

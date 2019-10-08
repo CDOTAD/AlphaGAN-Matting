@@ -39,7 +39,7 @@ class Tester(object):
     def __init__(self, net_G, test_root):
         self.net_G = net_G
         self.dataroot = test_root
-        self.dir_images = os.path.join(self.dataroot, 'image')
+        self.dir_images = os.path.join(self.dataroot, 'input')
         self.dir_trimap = os.path.join(self.dataroot, 'trimaps')
         self.dir_alpha = os.path.join(self.dataroot, 'alpha')
 

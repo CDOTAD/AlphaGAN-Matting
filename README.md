@@ -52,6 +52,6 @@ My code is inspired by:
 
 - [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception)
 
-- [pytorch-deep-image-matting](https://https://github.com/huochaitiantang/pytorch-deep-image-matting)
+- [pytorch-deep-image-matting](https://github.com/huochaitiantang/pytorch-deep-image-matting)
 
 - [indexnet_matting](https://github.com/poppinace/indexnet_matting)

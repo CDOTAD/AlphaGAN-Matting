@@ -1,23 +1,24 @@
 from torch import nn
+from model.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
 # atrous_ResNet
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, dilation=1, downsample=None):
+    def __init__(self, inplanes, planes, BatchNorm, stride=1, dilation=1, downsample=None):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
+        self.bn1 = BatchNorm(planes)
         if dilation != 1:
             self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1,
                                    padding=dilation, dilation=dilation, bias=False)
         else:
             self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
                                    padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes)
+        self.bn2 = BatchNorm(planes)
         self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(planes * 4)
+        self.bn3 = BatchNorm(planes * 4)
         self.relu = nn.ReLU()
         self.downsample = downsample
         self.stride = stride
@@ -47,18 +48,18 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, block, layers, BatchNorm, num_classes=1000):
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv_1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3,
                                 bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
+        self.bn1 = BatchNorm(64)
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, return_indices=True)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilation=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilation=4)
+        self.layer1 = self._make_layer(block, 64, layers[0], BatchNorm)
+        self.layer2 = self._make_layer(block, 128, layers[1], BatchNorm, stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], BatchNorm, stride=2, dilation=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], BatchNorm, stride=2, dilation=4)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -70,7 +71,11 @@ class ResNet(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def _make_layer(self, block, planes, blocks, stride=1, dilation=1):
+            elif isinstance(m, SynchronizedBatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+
+    def _make_layer(self, block, planes, blocks, BatchNorm, stride=1, dilation=1):
         downsample = None
         downsample_stride = stride if dilation == 1 else 1
 
@@ -78,14 +83,14 @@ class ResNet(nn.Module):
             downsample = nn.Sequential(
                 nn.Conv2d(self.inplanes, planes * block.expansion,
                           kernel_size=1, stride=downsample_stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion),
+                BatchNorm(planes * block.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, dilation, downsample))
+        layers.append(block(self.inplanes, planes, BatchNorm, stride, dilation, downsample))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes, BatchNorm))
 
         return nn.Sequential(*layers)
 
@@ -114,8 +119,8 @@ class ResNet(nn.Module):
         return x, skip_connection1, skip_connection2, skip_connection3, max_index
 
 
-def resnet50():
+def resnet50(BatchNorm):
 
-    model = ResNet(Bottleneck, [3, 4, 6, 3])
+    model = ResNet(Bottleneck, [3, 4, 6, 3], BatchNorm)
 
     return model

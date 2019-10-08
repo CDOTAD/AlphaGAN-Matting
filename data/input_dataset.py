@@ -40,7 +40,7 @@ class InputDataset(data.Dataset):
         self.crop = [320, 480, 640]
 
         self.root = dataroot
-        self.dir_input = os.path.join(dataroot, 'input')
+        self.dir_input = os.path.join(dataroot, 'merged_cv')
         self.dir_alpha = os.path.join(dataroot, 'alpha')
         self.dir_fg = os.path.join(dataroot, 'fg')
         self.bg_root = bg_root
@@ -57,6 +57,10 @@ class InputDataset(data.Dataset):
         self.transform_l = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5])
+        ])
+
+        self.transform_alpha = transforms.Compose([
+            transforms.ToTensor()
         ])
 
     def __getitem__(self, index):
@@ -115,8 +119,8 @@ class InputDataset(data.Dataset):
         bg_img = cv.cvtColor(bg_img, cv.COLOR_BGR2RGB)
 
         I = self.transform_rgb(Image.fromarray(input_img))
-        A = self.transform_l(Image.fromarray(alpha_img))
-        T = self.transform_rgb(Image.fromarray(trimap))
+        A = self.transform_alpha(Image.fromarray(alpha_img))
+        T = self.transform_l(Image.fromarray(trimap))
         F = self.transform_rgb(Image.fromarray(fg_img))
         B = self.transform_rgb(Image.fromarray(bg_img))
 

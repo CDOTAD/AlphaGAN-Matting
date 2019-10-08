@@ -8,17 +8,24 @@ import numpy as np
 from torchnet.meter import AverageValueMeter
 from utils.Tester import Tester
 from .AlphaLoss import AlphaLoss
+from model.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
 # G
 class NetG(nn.Module):
 
-    def __init__(self):
+    def __init__(self, sync_bn):
         super(NetG, self).__init__()
 
-        self.encoder = Encoder()
+        if sync_bn:
+            BatchNorm = SynchronizedBatchNorm2d
+        else:
+            BatchNorm = nn.BatchNorm2d
+
+        # Encoder
+        self.encoder = Encoder(BatchNorm)
         # output 256 x 40 x 40
-        self.decoder = Decoder()
+        self.decoder = Decoder(BatchNorm)
 
     def forward(self, x):
         x = self.encoder(x)
@@ -43,24 +50,34 @@ class AlphaGAN(object):
             self.model_G = args.model
             self.model_D = args.model.replace('netG', 'netD')
 
-        # network init
-        netG = NetG()
+        if len(self.device.split(',')) > 1:
+            self.sync_bn = True
+        else:
+            self.sync_bn = False
 
-        netD = NLayerDiscriminator(input_nc=1)
+        # network init
+        netG = NetG(self.sync_bn)
+
+        # netD = NLayerDiscriminator(input_nc=4)
 
         if self.gpu_mode:
             self.G = nn.DataParallel(netG).cuda()
-            self.D = nn.DataParallel(netD).cuda()
+            # self.D = nn.DataParallel(netD).cuda()
             self.G_criterion = AlphaLoss().cuda()
             self.D_criterion = t.nn.MSELoss().cuda()
         else:
             self.G = netG
-            self.D = netD
+            # self.D = netD
             self.G_criterion = AlphaLoss()
             self.D_criterion = t.nn.MSELoss()
 
+        if self.fine_tune:
+            self.G.load_state_dict(t.load(self.model_G, map_location=t.device('cpu')))
+
         self.G_optimizer = t.optim.Adam(self.G.parameters(), lr=self.lrG, weight_decay=0.0005)
-        self.D_optimizer = t.optim.Adam(self.D.parameters(), lr=self.lrD, weight_decay=0.0005)
+        # self.G_optimizer_aspp = t.optim.Adam(self.G.module.aspp.parameters(), lr=1e-4, weight_decay=0.0005)
+        # self.G_optimizer_decoder = t.optim.Adam(self.G.module.decoder.parameters(), lr=1e-4, weight_decay=0.0005)
+        # self.D_optimizer = t.optim.Adam(self.D.parameters(), lr=self.lrD, weight_decay=0.0005)
 
         self.G_error_meter = AverageValueMeter()
         self.Alpha_loss_meter = AverageValueMeter()
@@ -72,10 +89,18 @@ class AlphaGAN(object):
         self.MSE_meter = AverageValueMeter()
 
     def train(self, dataset):
+
+        print('---------netG------------')
+        print(self.G)
+        # print('---------netD------------')
+        # print(self.D)
+
         if self.visual:
             vis = Visualizer(self.env)
 
         for epoch in range(1, self.epoch):
+
+            self.adjust_learning_rate(epoch)
 
             self.G.train()
 
@@ -95,23 +120,31 @@ class AlphaGAN(object):
                 #####################################
                 # train G
                 #####################################
-                self.set_requires_grad([self.D], False)
+                # self.set_requires_grad([self.D], False)
                 self.G_optimizer.zero_grad()
 
                 real_img_g = input_img[:, 0:3, :, :]
                 tri_img_g = input_img[:, 3:4, :, :]
 
+                tri_img_original = tri_img_g * 0.5 + 0.5
+
                 fake_alpha = self.G(input_img)
 
-                # alpha loss
-                loss_g_alpha = self.G_criterion(fake_alpha, real_alpha, tri_img_g)
+                wi = t.zeros(tri_img_g.shape)
+                wi[(tri_img_original * 255) == 128] = 1.
+                t_wi = wi.cuda()
 
+                unknown_size = t_wi.sum()
+
+                fake_alpha = (1 - t_wi) * tri_img_original + t_wi * fake_alpha
+
+                # alpha loss
+                loss_g_alpha = self.G_criterion(fake_alpha, real_alpha, unknown_size)
                 self.Alpha_loss_meter.add(loss_g_alpha.item())
 
                 # compositional loss
                 comp = fake_alpha * fg_img.cuda() + (1. - fake_alpha) * bg_img.cuda()
-                loss_g_com = self.G_criterion(comp, real_img_g, tri_img_g)
-
+                loss_g_com = self.G_criterion(comp, real_img_g, unknown_size) / 3.
                 self.Com_loss_meter.add(loss_g_com.item())
 
                 '''
@@ -124,25 +157,22 @@ class AlphaGAN(object):
                 '''
 
                 '''
-                # 迷惑判别器
-                wi = t.zeros(tri_img_g.shape)
-                wi[((tri_img_g*0.5 + 0.5)*255) == 128] = 1.
-                t_wi = wi.cuda()
-                fake_alpha = (1 - t_wi) * tri_img_g + t_wi * fake_alpha
-                fake_d = self.D(fake_alpha)
+                # trick D
+                input_d = t.cat([comp, tri_img_g], dim=1)
+                fake_d = self.D(input_d)
 
-                # vis.images(fake_alpha.detach().cpu().numpy(), win='mask_fake_alpha', opts=dict(title='mask_fake_alpha'))
 
                 target_fake = t.tensor(1.0).expand_as(fake_d).cuda()
                 loss_g_d = self.D_criterion(fake_d, target_fake)
 
                 self.Adv_loss_meter.add(loss_g_d.item())
                 '''
-                loss_G = loss_g_alpha + loss_g_com # + 0.01 * loss_g_d
+                loss_G = loss_g_alpha + loss_g_com #+ 0.01 * loss_g_d
 
                 loss_G.backward()
                 self.G_optimizer.step()
                 self.G_error_meter.add(loss_G.item())
+
                 '''
                 #########################################
                 # train D
@@ -150,28 +180,16 @@ class AlphaGAN(object):
                 self.set_requires_grad([self.D], True)
                 self.D_optimizer.zero_grad()
 
-                # real_img_d = input_img[:, 0:3, :, :]
-                tri_img_d = input_img[:, 3:4, :, :]
-
-                # 真正的alpha 交给判别器判断
-
-                real_d = self.D(real_alpha)
+                # real [real_img, tri]
+                real_d = self.D(input_img)
 
                 target_real_label = t.tensor(1.0)
                 target_real = target_real_label.expand_as(real_d).cuda()
 
                 loss_d_real = self.D_criterion(real_d, target_real)
 
-                # 生成器生成fake_alpha 交给判别器判断
-                fake_alpha = self.G(input_img)
-                wi = t.zeros(tri_img_g.shape)
-                wi[((tri_img_g * 0.5 + 0.5) * 255) == 128] = 1.
-                t_wi = wi.cuda()
-                fake_alpha = (1 - t_wi) * tri_img_g + t_wi * fake_alpha
-                # fake_img = fake_alpha*fg_img + (1 - fake_alpha) * bg_img
-                # fake_d = self.D(t.cat([fake_img, tri_img_d], dim=1))
-                fake_d = self.D(fake_alpha)
-
+                # fake [fake_img, tri]
+                fake_d = self.D(input_d)
                 target_fake_label = t.tensor(0.0)
 
                 target_fake = target_fake_label.expand_as(fake_d).cuda()
@@ -183,11 +201,18 @@ class AlphaGAN(object):
                 self.D_error_meter.add(loss_D.item())
                 '''
                 if self.visual:
-                    #vis.plot('errord', self.D_error_meter.value()[0])
+                    # vis.plot('errord', self.D_error_meter.value()[0])
                     vis.plot('errorg', np.array([self.Alpha_loss_meter.value()[0],
                                                  self.Com_loss_meter.value()[0]]),
                              legend=['alpha_loss', 'com_loss'])
+                    # vis.plot('errorg_d', self.Adv_loss_meter.value()[0])
 
+                self.G_error_meter.reset()
+                self.D_error_meter.reset()
+
+                self.Alpha_loss_meter.reset()
+                self.Com_loss_meter.reset()
+                self.Adv_loss_meter.reset()
             ##############################
             # test
             ##############################
@@ -202,12 +227,9 @@ class AlphaGAN(object):
 
             vis.plot('test_result', np.array([self.SAD_meter.value()[0], self.MSE_meter.value()[0]]),
                      legend=['SAD', 'MSE'])
-            self.G_error_meter.reset()
-            self.D_error_meter.reset()
 
-            self.Alpha_loss_meter.reset()
-            self.Com_loss_meter.reset()
-            self.Adv_loss_meter.reset()
+            self.SAD_meter.reset()
+            self.MSE_meter.reset()
 
             if self.save_model:
                 # t.save(self.D.state_dict(), self.save_dir + '/netD' + '/netD_%s.pth' % epoch)
@@ -215,15 +237,18 @@ class AlphaGAN(object):
 
         return
 
-    def adjust_learning_rate(self):
-        self.lrG = self.lrG / 10
-        self.lrD = self.lrD / 10
+    def adjust_learning_rate(self, epoch):
+        if epoch % 10 == 0:
+            print('reduce learning rate')
+            self.lrG = self.lrG / 10
+            self.lrD = self.lrD / 10
 
-        for param_group in self.G_optimizer.param_groups:
-            param_group['lr'] = self.lrG
-
-        for param_group in self.D_optimizer.param_groups:
-            param_group['lr'] = self.lrD
+            for param_group in self.G_optimizer.param_groups:
+                param_group['lr'] = self.lrG
+            '''
+            for param_group in self.D_optimizer.param_groups:
+                param_group['lr'] = self.lrD
+            '''
 
     def set_requires_grad(self, nets, requires_grad=False):
         if not isinstance(nets, list):
