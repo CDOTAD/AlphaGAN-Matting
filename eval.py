@@ -10,7 +10,7 @@ import tqdm
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
-MODEL_DIR = 'checkpoint/no_aspp/netG/netG_3.pth'
+MODEL_DIR = 'checkpoint/no_aspp/netG/netG_20.pth'
 
 
 @t.no_grad()
@@ -52,8 +52,8 @@ def inference_onece(model, scale_img, scale_trimap):
 @t.no_grad()
 def inference_img_whole(model, img, trimap):
     h, w, c = img.shape
-    new_h = min(320, h - (h % 32))
-    new_w = min(320, w - (w % 32))
+    new_h = min(1312, h - (h % 32))
+    new_w = min(1312, w - (w % 32))
 
     scale_img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
     scale_trimap = cv2.resize(trimap, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
@@ -70,8 +70,8 @@ def main():
     netG.load_state_dict(t.load(MODEL_DIR, map_location=t.device('cpu')))
     netG.eval()
 
-    img_root = 'examples/image/dandelion-1335575_1920_1.png' # '/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images/image/antique-honiton-lace-1182740_1920_0.png'
-    trimap_root = 'examples/trimap/dandelion-1335575_1920_1.png' #  '/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images/trimaps/antique-honiton-lace-1182740_1920_0.png'
+    img_root = 'examples/image/spring-289527_1920_15.png' # '/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images/image/antique-honiton-lace-1182740_1920_0.png'
+    trimap_root = 'examples/trimap/spring-289527_1920_15.png' #  '/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images/trimaps/antique-honiton-lace-1182740_1920_0.png'
 
     image = cv2.imread(img_root)
     trimap = cv2.imread(trimap_root)[:, :, 0]

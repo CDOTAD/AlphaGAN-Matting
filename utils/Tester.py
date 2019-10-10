@@ -98,13 +98,13 @@ class Tester(object):
 
         normalize = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
 
         scale_img_rgb = cv.cvtColor(scale_image, cv.COLOR_BGR2RGB)
         tensor_img = normalize(Image.fromarray(scale_img_rgb)).unsqueeze(0)
 
-        tensor_trimap = normalize(Image.fromarray(scale_trimap)).unsqueeze(0)
+        tensor_trimap = transforms.ToTensor()(Image.fromarray(scale_trimap)).unsqueeze(0)
         # print('np.unique(tensor_trimap.numpy())', np.unique(tensor_trimap.numpy()))
 
         tensor_img = tensor_img.cuda()
@@ -125,18 +125,19 @@ class Tester(object):
         mask = 1 - mask
         alpha = (1 - mask) * (scale_trimap / 255.) + mask * pred_mattes
 
-        vis.images(tensor_img.cpu().numpy()*0.5 + 0.5, win='real_img')
+        '''
+        vis.images(transforms.ToTensor()(np.array(scale_img_rgb)), win='real_img')
         vis.images(np.array(scale_trimap), win='trimap')
         vis.images(np.array(alpha), win='fake_alpha')
         vis.images(np.array(pred_mattes), win='pred_mattes')
-
+        '''
         return alpha
 
     @t.no_grad()
     def inference_img_whole(self, img, trimap, vis):
         h, w, c = img.shape
-        new_h = min(320, h-(h%32))
-        new_w = min(320, w-(w%32))
+        new_h = min(1312, h-(h % 32))
+        new_w = min(1312, w-(w % 32))
 
         scale_img = cv.resize(img, (new_w, new_h), interpolation=cv.INTER_LINEAR)
         scale_trimap = cv.resize(trimap, (new_w, new_h), interpolation=cv.INTER_LINEAR)
