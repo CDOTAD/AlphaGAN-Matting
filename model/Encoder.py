@@ -12,6 +12,21 @@ class Encoder(nn.Module):
         self.resnet50 = resnet50(BatchNorm)
         self.aspp = ASPP(2048, 256, BatchNorm)
 
+        # self._initialize_weights()
+
+    def _initialize_weights(self):
+
+        pretrained_resnet50 = tv.models.resnet50(pretrained=True)
+        pretrained_dict = pretrained_resnet50.state_dict()
+
+        atrous_resnet_dict = self.resnet50.state_dict()
+
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in atrous_resnet_dict}
+
+        atrous_resnet_dict.update(pretrained_dict)
+
+        self.resnet50.load_state_dict(atrous_resnet_dict)
+
     def forward(self, x):
 
         x, skip_connection1, skip_connection2, skip_connection3, max_index = self.resnet50(x)

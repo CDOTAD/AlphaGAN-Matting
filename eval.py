@@ -10,7 +10,7 @@ import tqdm
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
-MODEL_DIR = 'checkpoint/no_aspp/netG/netG_20.pth'
+MODEL_DIR = 'checkpoint/new_test/netG/netG_10.pth'
 
 
 @t.no_grad()

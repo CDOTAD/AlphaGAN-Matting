@@ -1,5 +1,6 @@
 from torch import nn
 import functools
+from model.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
 # Defines the PatchGAN discriminator with the specified arguments.
@@ -53,6 +54,9 @@ class NLayerDiscriminator(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, SynchronizedBatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
