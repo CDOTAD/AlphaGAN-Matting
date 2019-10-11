@@ -18,14 +18,14 @@ def inference_onece(model, scale_img, scale_trimap):
 
     normalize = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
     scale_img_rgb = cv2.cvtColor(scale_img, cv2.COLOR_BGR2RGB)
 
     tensor_img = normalize(scale_img_rgb).unsqueeze(0)
 
-    tensor_trimap = normalize(Image.fromarray(scale_trimap)).unsqueeze(0)
+    tensor_trimap = transforms.ToTensor()(Image.fromarray(scale_trimap)).unsqueeze(0)
 
     tensor_img = tensor_img.cuda()
     tensor_trimap = tensor_trimap.cuda()
