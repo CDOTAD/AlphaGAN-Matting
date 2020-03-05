@@ -72,11 +72,11 @@ class Decoder(nn.Module):
 
         # deconv2_x
         self.deconv2_x = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=64+32, out_channels=64, kernel_size=3, stride=2,
-                               padding=1, output_padding=1, bias=False),
+            nn.Conv2d(in_channels=64+32, out_channels=64, kernel_size=3, padding=1, bias=False),
             BatchNorm(64),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1, bias=False),
+            nn.ConvTranspose2d(in_channels=64, out_channels=64, kernel_size=3, stride=2,
+                               padding=1, output_padding=1, bias=False),
             BatchNorm(64),
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1, bias=False),
