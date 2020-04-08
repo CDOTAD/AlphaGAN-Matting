@@ -56,8 +56,8 @@ MSCOCO
 
 # Results
 
-| image | trimap | alpha |
-|:---:  | :--:   | :---: |
+| image | trimap | alpha(predicted) |
+|:---:  | :--:   |      :---:       |
 |![](examples/images/beach-747750_1280_2.png)| ![](examples/trimaps/beach-747750_1280_2.png)| ![](result/beach-747750_1280_2.png)|
 |![](examples/images/boy-1518482_1920_9.png)| ![](examples/trimaps/boy-1518482_1920_9.png)| ![](result/boy-1518482_1920_9.png)|
 |![](examples/images/light-bulb-1104515_1280_3.png)|![](examples/trimaps/light-bulb-1104515_1280_3.png)|![](result/light-bulb-1104515_1280_3.png)|
