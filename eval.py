@@ -7,10 +7,11 @@ import os
 import cv2
 from PIL import Image
 import tqdm
+from utils.Tester import Tester
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
-MODEL_DIR = 'checkpoint/new_test/netG/netG_10.pth'
+MODEL_DIR = '/data1/zzl/checkpoint/alphaGAN/netG/netG_best_sad_68.pth'
 
 
 @t.no_grad()
@@ -52,8 +53,8 @@ def inference_onece(model, scale_img, scale_trimap):
 @t.no_grad()
 def inference_img_whole(model, img, trimap):
     h, w, c = img.shape
-    new_h = min(1312, h - (h % 32))
-    new_w = min(1312, w - (w % 32))
+    new_h = min(6400, h - (h % 32))
+    new_w = min(6400, w - (w % 32))
 
     scale_img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
     scale_trimap = cv2.resize(trimap, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
@@ -66,35 +67,42 @@ def inference_img_whole(model, img, trimap):
 
 @t.no_grad()
 def main():
-    netG = nn.DataParallel(NetG()).cuda()
+    netG = NetG(False).cuda()
     netG.load_state_dict(t.load(MODEL_DIR, map_location=t.device('cpu')))
     netG.eval()
 
-    img_root = 'examples/image/spring-289527_1920_15.png' # '/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images/image/antique-honiton-lace-1182740_1920_0.png'
-    trimap_root = 'examples/trimap/spring-289527_1920_15.png' #  '/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images/trimaps/antique-honiton-lace-1182740_1920_0.png'
+    img_root = './examples/images'
+    trimap_root = './examples/trimaps'
+    save_root = './result'
+    images = os.listdir(img_root)
+    
+    for img in images:
+    
+        image = cv2.imread(os.path.join(img_root, img))
+        trimap = cv2.imread(os.path.join(trimap_root, img))[:, :, 0]
 
-    image = cv2.imread(img_root)
-    trimap = cv2.imread(trimap_root)[:, :, 0]
+        pred_mattes = inference_img_whole(netG, image, trimap)
 
-    pred_mattes = inference_img_whole(netG, image, trimap)
-
-    pred_mattes = pred_mattes.astype(np.uint8)
-    # pred_mattes[trimap == 255] = 255
-    # pred_mattes[trimap == 0] = 0
-
-    cv2.imwrite('result.png', pred_mattes)
+        pred_mattes = pred_mattes.astype(np.uint8)
+        # pred_mattes[trimap == 255] = 255
+        # pred_mattes[trimap == 0] = 0
+        if not os.path.exists(save_root):
+            os.mkdir(save_root)
+        cv2.imwrite(os.path.join(save_root, img), pred_mattes)
 
 
 @t.no_grad()
 def alphamatting():
-    netG = nn.DataParallel(NetG()).cuda()
+    netG = NetG(False).cuda()
     netG.load_state_dict(t.load(MODEL_DIR, map_location=t.device('cpu')))
     netG.eval()
 
-    img_root = '/data0/zzl/dataset/matting/alphamatting/input_lowers'
-    trimap_root = '/data0/zzl/dataset/matting/alphamatting/trimap_lowres'
+    img_root = '/data1/zzl/dataset/alphamatting/input_lowers'
+    trimap_root = '/data1/zzl/dataset/alphamatting/trimap_lowres'
 
     img_name = os.listdir(img_root)
+
+    current_path = os.getcwd()
 
     for name in tqdm.tqdm(img_name):
         for i in range(1, 4):
@@ -107,12 +115,15 @@ def alphamatting():
 
             pred_mattes = pred_mattes.astype(np.uint8)
 
-            cv2.imwrite(trimap_floder+'/'+name, pred_mattes)
+            save_path = os.path.join(current_path, trimap_floder)
+            if not os.path.exists(save_path):
+                os.mkdir(save_path)
+            cv2.imwrite(os.path.join(save_path, name), pred_mattes)
 
 
 @t.no_grad()
 def adobe():
-    netG = nn.DataParallel(NetG()).cuda()
+    netG = NetG().cuda()
     netG.load_state_dict(t.load(MODEL_DIR, map_location=t.device('cpu')))
     netG.eval()
 
@@ -135,6 +146,19 @@ def adobe():
 
         pred_mattes = pred_mattes.astype(np.uint8)
         cv2.imwrite(out_root + '/' + name, pred_mattes)
+
+@t.no_grad()
+def whole_adobe():
+    netG = NetG(False).cuda()
+    netG.load_state_dict(t.load(MODEL_DIR, map_location=t.device('cpu')))
+    netG.eval()
+    tester = Tester(net_G=netG  ,
+                    test_root='/data1/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images',
+                    device='cuda:0')
+    test_result = tester.test()
+    for k, v in test_result.items():
+        print(k, v)
+
 
 
 if __name__ == '__main__':

@@ -5,11 +5,16 @@ from .Decoder import Decoder
 from .NLayerDiscriminator import NLayerDiscriminator
 from visualize import Visualizer
 import numpy as np
-from torchnet.meter import AverageValueMeter
 from utils.Tester import Tester
 from .AlphaLoss import AlphaLoss
 from model.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+import torch.optim.lr_scheduler as lr_scheduler
+from tensorboardX import SummaryWriter
+from torchnet.meter import AverageValueMeter
+import os
 
+def BatchNormGroup(num_features):
+    return nn.GroupNorm(num_channels=num_features, num_groups=32)
 
 # G
 class NetG(nn.Module):
@@ -20,7 +25,7 @@ class NetG(nn.Module):
         if sync_bn:
             BatchNorm = SynchronizedBatchNorm2d
         else:
-            BatchNorm = nn.BatchNorm2d
+            BatchNorm = BatchNormGroup
 
         # Encoder
         self.encoder = Encoder(BatchNorm)
@@ -35,6 +40,7 @@ class NetG(nn.Module):
 class AlphaGAN(object):
     def __init__(self, args):
         self.epoch = args.epoch
+        self.warmup_step = args.warmup_step
         self.batch_size = args.batch_size
         self.save_model = args.save_model
         self.save_dir = args.save_dir
@@ -46,12 +52,14 @@ class AlphaGAN(object):
         self.visual = args.visual
         self.env = args.env
 
+        self.best_sad = 1000
+
         if self.fine_tune:
             self.model_G = args.model
             self.model_D = args.model.replace('netG', 'netD')
 
         if len(self.device.split(',')) > 1:
-            self.sync_bn = True
+            self.sync_bn = False
         else:
             self.sync_bn = False
 
@@ -61,8 +69,8 @@ class AlphaGAN(object):
         netD = NLayerDiscriminator(input_nc=4, n_layers=2, norm_layer=SynchronizedBatchNorm2d)
 
         if self.gpu_mode:
-            self.G = nn.DataParallel(netG).cuda()
-            self.D = nn.DataParallel(netD).cuda()
+            self.G = netG.cuda()
+            self.D = netD.cuda()
             self.G_criterion = AlphaLoss().cuda()
             self.D_criterion = t.nn.MSELoss().cuda()
         else:
@@ -79,11 +87,11 @@ class AlphaGAN(object):
         # self.G_optimizer_decoder = t.optim.Adam(self.G.module.decoder.parameters(), lr=1e-4, weight_decay=0.0005)
         self.D_optimizer = t.optim.Adam(self.D.parameters(), lr=self.lrD, weight_decay=0.0005)
 
-        self.G_error_meter = AverageValueMeter()
-        self.Alpha_loss_meter = AverageValueMeter()
-        self.Com_loss_meter = AverageValueMeter()
-        self.Adv_loss_meter = AverageValueMeter()
-        self.D_error_meter = AverageValueMeter()
+        self.G_scheduler = lr_scheduler.CosineAnnealingLR(self.G_optimizer, T_max=self.epoch-self.warmup_step)
+        self.D_scheduler = lr_scheduler.CosineAnnealingLR(self.D_optimizer, T_max=self.epoch-self.warmup_step)
+
+        self.avg_G_loss = AverageValueMeter()
+        self.avg_D_loss = AverageValueMeter()
 
         self.SAD_meter = AverageValueMeter()
         self.MSE_meter = AverageValueMeter()
@@ -95,17 +103,19 @@ class AlphaGAN(object):
         print('---------netD------------')
         print(self.D)
 
-        if self.visual:
-            vis = Visualizer(self.env)
+        writer = SummaryWriter('tensorboardlog/AlphaGAN_bs_1')
+        niter = 1
 
-        for epoch in range(1, self.epoch):
 
-            self.adjust_learning_rate(epoch)
+        for epoch in range(1, self.epoch+1):
+
+            cur_lr = self.adjust_learning_rate(epoch)
+            writer.add_scalar('Train/lr', cur_lr, epoch)
 
             self.G.train()
 
             for ii, data in enumerate(dataset):
-                t.cuda.empty_cache()
+                #t.cuda.empty_cache()
 
                 real_img = data['I']
                 tri_img = data['T']
@@ -141,12 +151,11 @@ class AlphaGAN(object):
 
                 # alpha loss
                 loss_g_alpha = self.G_criterion(fake_alpha, real_alpha, unknown_size)
-                self.Alpha_loss_meter.add(loss_g_alpha.item())
 
                 # compositional loss
                 comp = fake_alpha * fg_img.cuda() + (1. - fake_alpha) * bg_img.cuda()
                 loss_g_com = self.G_criterion(comp, real_img_g, unknown_size) / 3.
-                self.Com_loss_meter.add(loss_g_com.item())
+                # self.Com_loss_meter.add(loss_g_com.item())
 
                 '''
                 vis.images(real_img.numpy() * 0.5 + 0.5, win='real_image', opts=dict(title='real_image'))
@@ -164,14 +173,16 @@ class AlphaGAN(object):
                 target_fake = t.tensor(1.0).expand_as(fake_d).cuda()
                 loss_g_d = self.D_criterion(fake_d, target_fake)
 
-                self.Adv_loss_meter.add(loss_g_d.item())
+                loss_G = 0.5*loss_g_alpha + 0.5*loss_g_com + 0.001 * loss_g_d
 
-                loss_G = 0.5 * loss_g_alpha + 0.5 * loss_g_com + 0.01 * loss_g_d
+                self.avg_G_loss.add(loss_G.item())
 
                 loss_G.backward(retain_graph=True)
                 self.G_optimizer.step()
-                self.G_error_meter.add(loss_G.item())
-
+                writer.add_scalar('Train/CompLoss', loss_g_com.item(), niter)
+                writer.add_scalar('Train/AlphaLoss', loss_g_alpha.item(), niter)
+                writer.add_scalar('Train/AdvLoss', loss_g_d.item(), niter)
+                writer.add_scalar('Train/lossG', loss_G.item(), niter)
 
                 #########################################
                 # train D
@@ -197,56 +208,45 @@ class AlphaGAN(object):
                 loss_D = 0.5 * (loss_d_real + loss_d_fake)
                 loss_D.backward()
                 self.D_optimizer.step()
-                self.D_error_meter.add(loss_D.item())
-
-                if self.visual:
-                    vis.plot('errord', self.D_error_meter.value()[0])
-                    vis.plot('errorg', np.array([self.Alpha_loss_meter.value()[0],
-                                                 self.Com_loss_meter.value()[0]]),
-                             legend=['alpha_loss', 'com_loss'])
-                    vis.plot('errorg_d', self.Adv_loss_meter.value()[0])
-
-                self.G_error_meter.reset()
-                self.D_error_meter.reset()
-
-                self.Alpha_loss_meter.reset()
-                self.Com_loss_meter.reset()
-                self.Adv_loss_meter.reset()
-
+                self.avg_D_loss.add(loss_D.item())
+                writer.add_scalar('Train/D_AdvLoss', loss_D.item(), niter)
+                niter += 1
+            writer.add_scalar('Train/G_avg_loss', self.avg_G_loss.value()[0], epoch)
+            writer.add_scalar('Train/D_avg_loss', self.avg_D_loss.value()[0], epoch)
+            self.avg_G_loss.reset()
+            self.avg_D_loss.reset()
+    
             ##############################
             # test
             ##############################
-
-            self.G.eval()
-            tester = Tester(net_G=self.G,
-                            test_root='/home/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images')
-            test_result = tester.test(vis)
-            print('sad : {0}, mse : {1}'.format(test_result['sad'], test_result['mse']))
-            self.SAD_meter.add(test_result['sad'])
-            self.MSE_meter.add(test_result['mse'])
-
-            vis.plot('test_result', np.array([self.SAD_meter.value()[0], self.MSE_meter.value()[0]]),
-                     legend=['SAD', 'MSE'])
-            if self.save_model:
-                t.save(self.D.state_dict(), self.save_dir + '/netD' + '/netD_%s.pth' % epoch)
-                t.save(self.G.state_dict(), self.save_dir + '/netG' + '/netG_%s.pth' % epoch)
-            self.SAD_meter.reset()
-            self.MSE_meter.reset()
+            
+            if epoch % 1 == 0:
+                print('-----test-------')
+                tester = Tester(net_G=self.G.eval(),
+                                test_root='/data1/zzl/dataset/Combined_Dataset/Test_set/Adobe-licensed_images')
+                test_result = tester.test()
+                if test_result['sad']<self.best_sad:
+                    self.best_sad = test_result['sad']
+                    t.save(self.G.state_dict(), self.save_dir+'/netG'+'/netG_best_sad.pth')
+                print('sad : {0}, mse : {1}'.format(test_result['sad'], test_result['mse']))
+                writer.add_scalars('Test/metric', test_result, epoch)
 
         return
 
-    def adjust_learning_rate(self, epoch):
-        if epoch % 10 == 0:
-            print('reduce learning rate')
-            self.lrG = self.lrG / 10
-            self.lrD = self.lrD / 10
-
+    def adjust_learning_rate(self, step):
+        if step < self.warmup_step:
+            cur_lr = self.warmup_lr(self.lrG, step, self.warmup_step)
             for param_group in self.G_optimizer.param_groups:
-                param_group['lr'] = self.lrG
-
+                param_group['lr']=cur_lr
             for param_group in self.D_optimizer.param_groups:
-                param_group['lr'] = self.lrD
+                param_group['lr']=cur_lr
+        else:
+            self.G_scheduler.step()
+            self.D_scheduler.step()
 
+            cur_lr = self.G_scheduler.get_lr()[0]
+        
+        return cur_lr
 
     def set_requires_grad(self, nets, requires_grad=False):
         if not isinstance(nets, list):
@@ -256,3 +256,5 @@ class AlphaGAN(object):
                 for param in net.parameters():
                     param.requires_grad = requires_grad
 
+    def warmup_lr(self, init_lr, step, iter_num):
+        return step/iter_num*init_lr

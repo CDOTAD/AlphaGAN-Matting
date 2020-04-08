@@ -4,8 +4,6 @@
 
 This project is an unofficial implementation of [AlphaGAN: Generative adversarial networks for natural image matting](https://arxiv.org/pdf/1807.10088.pdf) published at the BMVC 2018. As for now, the result of my experiment is not as good as the paper's.
 
-**This is a course project of mine and there may exists some mistakes in this project.**
-
 # Dataset
 
 ## Adobe Deep Image Matting Dataset
@@ -52,7 +50,25 @@ MSCOCO
 
 # Records
 
-- Achieved **SAD=78.22** after 21 epoches. The method seems to be right and there is still lots of work to do.
+- Achieved **SAD=78.22** after 21 epoches.
+
+- Achieved **SAD=68.61** after 33 epoches.
+
+# Results
+
+| image | trimap | alpha |
+| :---：| :---:  | :---: |
+|![](examples/images/beach-747750_1280_2.png)| ![](examples/trimaps/beach-747750_1280_2.png)| ![](result/beach-747750_1280_2.png)|
+
+|![](examples/images/boy-1518482_1920_9.png)| ![](examples/trimaps/boy-1518482_1920_9.png)| ![](result/boy-1518482_1920_9.png)|
+
+|![](examples/images/light-bulb-1104515_1280_3.png)|![](examples/trimaps/light-bulb-1104515_1280_3.png)|![](result/light-bulb-1104515_1280_3.png)|
+
+|![](examples/images/spring-289527_1920_15.png)|![](examples/trimaps/spring-289527_1920_15.png)|![](result/spring-289527_1920_15.png)|
+
+|![](examples/images/wedding-dresses-1486260_1280_3.png)|![](examples/trimaps/wedding-dresses-1486260_1280_3.png)|![](result/wedding-dresses-1486260_1280_3.png)|
+
+
 
 # Acknowledgments
 

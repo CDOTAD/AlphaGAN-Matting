@@ -39,15 +39,15 @@ class Decoder(nn.Module):
         # output: 256 x 80 x 80
 
         self.skip_3 = nn.Sequential(
-            nn.Conv2d(in_channels=256, out_channels=48, kernel_size=1, bias=False),
-            BatchNorm(48),
+            nn.Conv2d(in_channels=256, out_channels=64, kernel_size=1, bias=False),
+            BatchNorm(64),
             nn.ReLU(inplace=True)
 
         )
 
         # deconv1_x
         self.deconv1_x = nn.Sequential(
-            nn.Conv2d(in_channels=256+48, out_channels=256, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_channels=256+64, out_channels=256, kernel_size=3, padding=1, bias=False),
             BatchNorm(256),
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels=256, out_channels=128, kernel_size=3, padding=1, bias=False),

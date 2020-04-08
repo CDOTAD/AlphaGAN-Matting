@@ -36,8 +36,9 @@ def make_dataset(dir):
 
 
 class Tester(object):
-    def __init__(self, net_G, test_root):
+    def __init__(self, net_G, test_root, device='cuda:1'):
         self.net_G = net_G
+        self.device = device
         self.dataroot = test_root
         self.dir_images = os.path.join(self.dataroot, 'input')
         self.dir_trimap = os.path.join(self.dataroot, 'trimaps')
@@ -49,7 +50,7 @@ class Tester(object):
         self.size = len(self.images_paths)
 
     @t.no_grad()
-    def test(self, vis):
+    def test(self, vis=None):
 
         total_sad = 0
         total_mse = 0
@@ -107,8 +108,8 @@ class Tester(object):
         tensor_trimap = transforms.ToTensor()(Image.fromarray(scale_trimap)).unsqueeze(0)
         # print('np.unique(tensor_trimap.numpy())', np.unique(tensor_trimap.numpy()))
 
-        tensor_img = tensor_img.cuda()
-        tensor_trimap = tensor_trimap.cuda()
+        tensor_img = tensor_img.cuda()#to(self.device)
+        tensor_trimap = tensor_trimap.cuda()#to(self.device)
         # print(tensor_img.size())
         # print(tensor_trimap.size())
         input_t = t.cat((tensor_img, tensor_trimap), dim=1)
@@ -136,8 +137,8 @@ class Tester(object):
     @t.no_grad()
     def inference_img_whole(self, img, trimap, vis):
         h, w, c = img.shape
-        new_h = min(1312, h-(h % 32))
-        new_w = min(1312, w-(w % 32))
+        new_h = min(6400, h-(h % 32))
+        new_w = min(6400, w-(w % 32))
 
         scale_img = cv.resize(img, (new_w, new_h), interpolation=cv.INTER_LINEAR)
         scale_trimap = cv.resize(trimap, (new_w, new_h), interpolation=cv.INTER_LINEAR)
