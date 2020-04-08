@@ -57,15 +57,11 @@ MSCOCO
 # Results
 
 | image | trimap | alpha |
-| :---：| :---:  | :---: |
+|:---:  | :--:   | :---: |
 |![](examples/images/beach-747750_1280_2.png)| ![](examples/trimaps/beach-747750_1280_2.png)| ![](result/beach-747750_1280_2.png)|
-
 |![](examples/images/boy-1518482_1920_9.png)| ![](examples/trimaps/boy-1518482_1920_9.png)| ![](result/boy-1518482_1920_9.png)|
-
 |![](examples/images/light-bulb-1104515_1280_3.png)|![](examples/trimaps/light-bulb-1104515_1280_3.png)|![](result/light-bulb-1104515_1280_3.png)|
-
 |![](examples/images/spring-289527_1920_15.png)|![](examples/trimaps/spring-289527_1920_15.png)|![](result/spring-289527_1920_15.png)|
-
 |![](examples/images/wedding-dresses-1486260_1280_3.png)|![](examples/trimaps/wedding-dresses-1486260_1280_3.png)|![](result/wedding-dresses-1486260_1280_3.png)|
 
 
