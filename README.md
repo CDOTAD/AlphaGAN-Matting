@@ -48,10 +48,18 @@ MSCOCO
 
 - SyncBatchNorm instead of pytorch original BatchNorm when use multi GPU.
 
+- Training batch_size = 1 [[1]](#ref1) [[2]](#ref2) 
+
+- Using GroupNorm [[2]](#ref2)
+
+- Using Warmup [[3]](#ref3) [[4]](#ref4)
+
 # Records
 
+4 GPUS 32 batch size, and SyncBatchNorm
 - Achieved **SAD=78.22** after 21 epoches.
 
+1 GPU 1 batch size, and GroupNorm
 - Achieved **SAD=68.61** after 33 epoches.
 
 # Results
@@ -70,12 +78,18 @@ MSCOCO
 
 My code is inspired by:
 
+- <span id="ref1"></span>  [1] [pytorch-deep-image-matting](https://github.com/huochaitiantang/pytorch-deep-image-matting)
+
+- <span id="ref2"></span> [2] [FBA-Matting](https://github.com/MarcoForte/FBA-Matting)
+
+- <span id="ref3"></span> [3] [GCA-Matting](https://github.com/MarcoForte/FBA-Matting)
+
+- <span id="ref4"></span> [4] [reid-strong-baseline](https://github.com/michuanhaohao/reid-strong-baseline)
+
 - [pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
 
 - [pytorch-book](https://github.com/chenyuntc/pytorch-book) chapter7 generate anime head portrait with GAN
 
 - [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception)
-
-- [pytorch-deep-image-matting](https://github.com/huochaitiantang/pytorch-deep-image-matting)
 
 - [indexnet_matting](https://github.com/poppinace/indexnet_matting)
