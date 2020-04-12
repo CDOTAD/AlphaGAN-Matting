@@ -60,7 +60,8 @@ MSCOCO
 - Achieved **SAD=78.22** after 21 epoches.
 
 1 GPU 1 batch size, and GroupNorm
-- Achieved **SAD=68.61** after 33 epoches.
+- Achieved [**SAD=68.61 MSE=0.03189**](https://drive.google.com/open?id=1yFRSjTNlAycmio8B-aibR7ZfYB9oZ-H3) after 33 epoches.
+- Achieved [**SAD=61.9 MSE=0.02878**](https://drive.google.com/open?id=1mICVWsQYGz3FrwiVZCnhsp56OAh-9coS) after xx epoches.
 
 # Results
 
