@@ -32,6 +32,7 @@ def generate_trimap(alpha):
 
    return trimap
 ```
+See `scripts/MattingTrain.ipynb` and `scripts/MattingTest.ipynb` to compose the training/testing set.
 
 The Dataset structure in my project
 
@@ -39,11 +40,18 @@ The Dataset structure in my project
 Train
   ├── alpha  # the alpha ground-truth
   ├── fg     # the foreground image
-  ├── input  # the real image composed by the fg & bg
+  ├── merged_cv  # the real image composed by the fg & bg
 MSCOCO
   ├── train2014 # the background image
 
 ```
+# Running the Codes
+
+```shell
+   python train.py --dataroot ${YOUR_DIM_DATASET_ROOT} \
+                     --training_file ${THE TRAINING FILE OF THE DIM DATASET}
+```
+
 # Differences from the original paper
 
 - SyncBatchNorm instead of pytorch original BatchNorm when use multi GPU.
